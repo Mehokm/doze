@@ -1,62 +1,101 @@
 package rest
 
 import (
+	"compress/gzip"
 	"encoding/json"
+	"io"
 	"net/http"
 )
 
-type Response interface {
-	Send(w http.ResponseWriter)
+// ResponseSender is an interface to send response from ControllerActions
+type ResponseSender interface {
+	Send(w io.Writer)
 }
 
-type JsonResponse struct {
+// BasicResponse contains all basic properties for a response
+type BasicResponse struct {
 	StatusCode int
 	Headers    map[string]string
-	Body       interface{}
+	Body       []byte
 }
 
-func NewOKJsonResponse(body interface{}) JsonResponse {
-	jr := basicJsonResponse()
+// GzipResponse is a wrapping response to gzip your BasicResponse
+type GzipResponse struct {
+	br BasicResponse
+}
+
+// NewOKJsonResponse returns a BasicResponse tailored for JSON with status code of 200
+func NewOKJsonResponse(body interface{}) BasicResponse {
+	jr := basicJsonResponse(body)
 	jr.StatusCode = http.StatusOK
-	jr.Body = body
 	return jr
 }
 
-func NewCreatedJsonResponse(body interface{}) JsonResponse {
-	jr := basicJsonResponse()
+// NewCreatedJsonResponse returns a BasicResponse tailored for JSON with status code of 201
+func NewCreatedJsonResponse(body interface{}) BasicResponse {
+	jr := basicJsonResponse(body)
 	jr.StatusCode = http.StatusCreated
-	jr.Body = body
 	return jr
 }
 
-func NewNoContentJsonResponse() JsonResponse {
-	jr := basicJsonResponse()
-	jr.StatusCode = http.StatusNoContent
-	jr.Body = http.StatusText(http.StatusNoContent)
-	return jr
+// NewNoContentResponse returns a BasicResponse defaulted for no content
+func NewNoContentResponse() BasicResponse {
+	return BasicResponse{
+		StatusCode: http.StatusNoContent,
+		Body:       []byte(http.StatusText(http.StatusNoContent)),
+	}
 }
 
-func NewNotFoundJsonResponse() JsonResponse {
-	jr := basicJsonResponse()
-	jr.StatusCode = http.StatusNotFound
-	jr.Body = http.StatusText(http.StatusNotFound)
-	return jr
+// NewNotFoundResponse returns a BasicResponse defaulted for not found
+func NewNotFoundResponse() BasicResponse {
+	return BasicResponse{
+		StatusCode: http.StatusNotFound,
+		Body:       []byte(http.StatusText(http.StatusNotFound)),
+	}
 }
 
-func (jr JsonResponse) Send(w http.ResponseWriter) {
-	for k, v := range jr.Headers {
+func (br BasicResponse) setHeaders(w http.ResponseWriter) {
+	for k, v := range br.Headers {
 		w.Header().Set(k, v)
 	}
-	w.WriteHeader(jr.StatusCode)
-
-	jsonBody, _ := json.Marshal(jr.Body)
-	w.Write(jsonBody)
+	w.WriteHeader(br.StatusCode)
 }
 
-func basicJsonResponse() JsonResponse {
+// Send writes the BasicResponse body to the http.ResponseWriter
+func (br BasicResponse) Send(w io.Writer) {
+	if rw, ok := w.(http.ResponseWriter); ok {
+		br.setHeaders(rw)
+	}
+
+	w.Write(br.Body)
+}
+
+func basicJsonResponse(body interface{}) BasicResponse {
 	headers := make(map[string]string)
 	headers["Content-Type"] = "application/json"
-	jr := JsonResponse{}
-	jr.Headers = headers
-	return jr
+
+	jsonBody, _ := json.Marshal(body)
+
+	br := BasicResponse{}
+	br.Headers = headers
+	br.Body = jsonBody
+
+	return br
+}
+
+// NewGzipResponse creates a new GzipResponse that wraps a BasicResponse that adds Content-Encoding to gzip
+func NewGzipResponse(br BasicResponse) ResponseSender {
+	br.Headers["Content-Encoding"] = "gzip"
+
+	return GzipResponse{br}
+}
+
+// Send creates a gzip writer and writes to the http.ResponseWriter
+func (gr GzipResponse) Send(w io.Writer) {
+	gr.br.setHeaders(w.(http.ResponseWriter))
+
+	gz := gzip.NewWriter(w)
+	defer gz.Close()
+
+	gr.br.Send(gz)
 }

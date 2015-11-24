@@ -2,7 +2,6 @@ package rest
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -11,20 +10,23 @@ import (
 	"reflect"
 )
 
-type ControllerAction func(HttpBundle) Response
+// ControllerAction is a type for all controller actions
+type ControllerAction func(HttpBundle) ResponseSender
 
-type RestHandler struct {
+// Handler implements http.Handler and contains the router and controllers for the REST api
+type Handler struct {
 	controllers map[string]map[string]reflect.Value
 	router      router
 }
 
-func NewRestHandler(router router) RestHandler {
+// NewHandler returns a new Handler with controllers and router initialized
+func NewHandler(router router) Handler {
 	controllers := make(map[string]map[string]reflect.Value)
 	for _, route := range router.Routes {
 		controllerVal := reflect.ValueOf(route.Controller)
 		controllers[route.ControllerName] = getControllerActions(controllerVal)
 	}
-	return RestHandler{controllers, router}
+	return Handler{controllers, router}
 }
 
 func getControllerActions(controllerVal reflect.Value) map[string]reflect.Value {
@@ -38,7 +40,7 @@ func getControllerActions(controllerVal reflect.Value) map[string]reflect.Value 
 	return actions
 }
 
-func (rh RestHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (rh Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	route := rh.router.Match(r.URL.Path)
 	if route == nil {
 		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
@@ -53,7 +55,7 @@ func (rh RestHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	actionValue := rh.controllers[route.ControllerName][action]
 	if !actionValue.IsValid() {
-		log.Println(errors.New(fmt.Sprintf("Action '%v' does not exist", action)))
+		log.Println(fmt.Errorf("Action '%v' does not exist", action))
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
@@ -66,28 +68,33 @@ func (rh RestHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	result := actionValue.Call([]reflect.Value{reflect.ValueOf(hb)})
 
-	resp := result[0].Interface().(Response)
+	resp := result[0].Interface().(ResponseSender)
 	resp.Send(w)
 }
 
+// HttpBundle holds the *http.Request, http.ResponseWriter, and routeParams of the request
 type HttpBundle struct {
 	request     *http.Request
 	response    http.ResponseWriter
 	routeParams map[string]interface{}
 }
 
+// Request returns *http.Request
 func (h HttpBundle) Request() *http.Request {
 	return h.request
 }
 
+// Response returns http.ResponseWriter
 func (h HttpBundle) Response() http.ResponseWriter {
 	return h.response
 }
 
+// RouteParams returns route params as map[string]interface{}
 func (h HttpBundle) RouteParams() map[string]interface{} {
 	return h.routeParams
 }
 
+// FormData returns data related to the request from GET, POST, or PUT
 func (h HttpBundle) FormData() url.Values {
 	h.request.ParseForm()
 	switch h.request.Method {
@@ -100,7 +107,8 @@ func (h HttpBundle) FormData() url.Values {
 	}
 }
 
-func (h *HttpBundle) BindEntity(i interface{}) error {
+// BindJsonEntity binds the JSON body from the request to an interface{}
+func (h *HttpBundle) BindJsonEntity(i interface{}) error {
 	body, err := ioutil.ReadAll(h.request.Body)
 	if err != nil {
 		return err
