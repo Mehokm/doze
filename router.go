@@ -28,9 +28,9 @@ var typeMap = map[string]reflect.Kind{
 
 type Route struct {
 	Path           string
-	Controller     interface{}
-	ControllerName string
-	Action         map[string]string
+	controller     interface{}
+	controllerName string
+	action         map[string]string
 	paramTypes     map[string]reflect.Kind
 	Params         map[string]interface{}
 	regex          *regexp.Regexp
@@ -156,9 +156,9 @@ func (ro router) RouteMap(rbs ...*routeBuilder) router {
 	for _, routeBuilder := range rbs {
 		route := &Route{
 			Path:           routeBuilder.path,
-			Controller:     routeBuilder.controller,
-			ControllerName: reflect.ValueOf(routeBuilder.controller).Type().Name(),
-			Action:         routeBuilder.action,
+			controller:     routeBuilder.controller,
+			controllerName: reflect.ValueOf(routeBuilder.controller).Type().Name(),
+			action:         routeBuilder.action,
 		}
 		route.init()
 

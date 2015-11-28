@@ -15,18 +15,19 @@ type ControllerAction func(HttpBundle) ResponseSender
 
 // Handler implements http.Handler and contains the router and controllers for the REST api
 type Handler struct {
-	controllers map[string]map[string]reflect.Value
-	router      router
+	controllers  map[string]map[string]reflect.Value
+	router       router
+	interceptors []Interceptor
 }
 
 // NewHandler returns a new Handler with controllers and router initialized
-func NewHandler(router router) Handler {
+func NewHandler(router router) *Handler {
 	controllers := make(map[string]map[string]reflect.Value)
 	for _, route := range router.Routes {
-		controllerVal := reflect.ValueOf(route.Controller)
-		controllers[route.ControllerName] = getControllerActions(controllerVal)
+		controllerVal := reflect.ValueOf(route.controller)
+		controllers[route.controllerName] = getControllerActions(controllerVal)
 	}
-	return Handler{controllers, router}
+	return &Handler{controllers, router, make([]Interceptor, 0)}
 }
 
 func getControllerActions(controllerVal reflect.Value) map[string]reflect.Value {
@@ -40,20 +41,28 @@ func getControllerActions(controllerVal reflect.Value) map[string]reflect.Value 
 	return actions
 }
 
-func (rh Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (rh *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	route := rh.router.Match(r.URL.Path)
 	if route == nil {
 		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
 		return
 	}
 
-	action, actionExists := route.Action[r.Method]
+	context := Context{
+		Request:        r,
+		ResponseWriter: w,
+		Route:          route,
+	}
+
+	rh.invokeInterceptors(context)
+
+	action, actionExists := route.action[r.Method]
 	if !actionExists {
 		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
 		return
 	}
 
-	actionValue := rh.controllers[route.ControllerName][action]
+	actionValue := rh.controllers[route.controllerName][action]
 	if !actionValue.IsValid() {
 		log.Println(fmt.Errorf("Action '%v' does not exist", action))
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
@@ -116,5 +125,21 @@ func (h *HttpBundle) BindJsonEntity(i interface{}) error {
 	return json.Unmarshal(body, i)
 }
 
-// TODO: add more safetly nets and verifications.  A lot of assumptions going on
-// TODO: add request logging
+type Interceptor func(Context) bool
+
+func (h *Handler) AddInterceptor(i Interceptor) {
+	h.interceptors = append(h.interceptors, i)
+}
+
+func (h *Handler) invokeInterceptors(c Context) {
+	i := 0
+	for i < len(h.interceptors)-1 && h.interceptors[i](c) {
+		i++
+	}
+}
+
+type Context struct {
+	Request        *http.Request
+	ResponseWriter http.ResponseWriter
+	Route          *Route
+}
