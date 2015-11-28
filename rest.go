@@ -54,7 +54,9 @@ func (rh *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		Route:          route,
 	}
 
-	rh.invokeInterceptors(context)
+	if ok := rh.invokeInterceptors(context); !ok {
+		return
+	}
 
 	action, actionExists := route.action[r.Method]
 	if !actionExists {
@@ -131,11 +133,15 @@ func (h *Handler) AddInterceptor(i Interceptor) {
 	h.interceptors = append(h.interceptors, i)
 }
 
-func (h *Handler) invokeInterceptors(c Context) {
+func (h *Handler) invokeInterceptors(c Context) bool {
 	i := 0
-	for i < len(h.interceptors)-1 && h.interceptors[i](c) {
+	result := true
+	for i < len(h.interceptors)-1 && result {
+		result = h.interceptors[i](c)
 		i++
 	}
+
+	return result
 }
 
 type Context struct {
