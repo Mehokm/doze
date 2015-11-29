@@ -106,11 +106,9 @@ func (h *Handler) AddInterceptor(i Interceptor) {
 }
 
 func (h *Handler) invokeInterceptors(c Context) bool {
-	i := 0
 	result := true
-	for i < len(h.interceptors)-1 && result {
+	for i := 0; i < len(h.interceptors) && result; i++ {
 		result = h.interceptors[i](c)
-		i++
 	}
 
 	return result
