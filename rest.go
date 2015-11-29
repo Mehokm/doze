@@ -2,12 +2,9 @@ package rest
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/url"
-	"reflect"
 )
 
 // ControllerAction is a type for all controller actions
@@ -15,30 +12,13 @@ type ControllerAction func(HttpBundle) ResponseSender
 
 // Handler implements http.Handler and contains the router and controllers for the REST api
 type Handler struct {
-	controllers  map[string]map[string]reflect.Value
 	router       router
 	interceptors []Interceptor
 }
 
-// NewHandler returns a new Handler with controllers and router initialized
+// NewHandler returns a new Handler with router initialized
 func NewHandler(router router) *Handler {
-	controllers := make(map[string]map[string]reflect.Value)
-	for _, route := range router.Routes {
-		controllerVal := reflect.ValueOf(route.controller)
-		controllers[route.controllerName] = getControllerActions(controllerVal)
-	}
-	return &Handler{controllers, router, make([]Interceptor, 0)}
-}
-
-func getControllerActions(controllerVal reflect.Value) map[string]reflect.Value {
-	actions := make(map[string]reflect.Value)
-	for i := 0; i < controllerVal.NumField(); i++ {
-		fieldVal := controllerVal.Field(i)
-		if _, ok := fieldVal.Interface().(ControllerAction); ok {
-			actions[controllerVal.Type().Field(i).Name] = fieldVal
-		}
-	}
-	return actions
+	return &Handler{router, make([]Interceptor, 0)}
 }
 
 func (rh *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -64,23 +44,15 @@ func (rh *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	actionValue := rh.controllers[route.controllerName][action]
-	if !actionValue.IsValid() {
-		log.Println(fmt.Errorf("Action '%v' does not exist", action))
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-		return
-	}
-
 	hb := HttpBundle{
 		request:     r,
 		response:    w,
 		routeParams: route.Params,
 	}
 
-	result := actionValue.Call([]reflect.Value{reflect.ValueOf(hb)})
+	result := action(hb)
 
-	resp := result[0].Interface().(ResponseSender)
-	resp.Send(w)
+	result.Send(w)
 }
 
 // HttpBundle holds the *http.Request, http.ResponseWriter, and routeParams of the request
