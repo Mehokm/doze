@@ -27,13 +27,11 @@ var typeMap = map[string]reflect.Kind{
 }
 
 type Route struct {
-	Path           string
-	controller     interface{}
-	controllerName string
-	action         map[string]string
-	paramTypes     map[string]reflect.Kind
-	Params         map[string]interface{}
-	regex          *regexp.Regexp
+	Path       string
+	action     map[string]ControllerAction
+	paramTypes map[string]reflect.Kind
+	Params     map[string]interface{}
+	regex      *regexp.Regexp
 }
 
 /*
@@ -110,7 +108,7 @@ type router struct {
 type routeBuilder struct {
 	path       string
 	controller interface{}
-	action     map[string]string
+	action     map[string]ControllerAction
 	routeName  string
 }
 
@@ -125,7 +123,7 @@ func DefaultRouter() router {
 }
 
 func NewRoute() *routeBuilder {
-	return &routeBuilder{action: make(map[string]string)}
+	return &routeBuilder{action: make(map[string]ControllerAction)}
 }
 
 func (rb *routeBuilder) Named(name string) *routeBuilder {
@@ -138,27 +136,20 @@ func (rb *routeBuilder) For(path string) *routeBuilder {
 	return rb
 }
 
-func (rb *routeBuilder) With(method, action string) *routeBuilder {
+func (rb *routeBuilder) With(method string, action ControllerAction) *routeBuilder {
 	rb.action[method] = action
 	return rb
 }
 
-func (rb *routeBuilder) And(method, action string) *routeBuilder {
+func (rb *routeBuilder) And(method string, action ControllerAction) *routeBuilder {
 	return rb.With(method, action)
-}
-
-func (rb *routeBuilder) Using(controller interface{}) *routeBuilder {
-	rb.controller = controller
-	return rb
 }
 
 func (ro router) RouteMap(rbs ...*routeBuilder) router {
 	for _, routeBuilder := range rbs {
 		route := &Route{
-			Path:           routeBuilder.path,
-			controller:     routeBuilder.controller,
-			controllerName: reflect.ValueOf(routeBuilder.controller).Type().Name(),
-			action:         routeBuilder.action,
+			Path:   routeBuilder.path,
+			action: routeBuilder.action,
 		}
 		route.init()
 
