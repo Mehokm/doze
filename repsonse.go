@@ -54,6 +54,13 @@ func NewNotFoundResponse() BasicResponse {
 	}
 }
 
+func NewInternalServerErrorResponse() BasicResponse {
+	return BasicResponse{
+		StatusCode: http.StatusInternalServerError,
+		Body:       []byte(http.StatusText(http.StatusInternalServerError)),
+	}
+}
+
 func (br BasicResponse) setHeaders(w http.ResponseWriter) {
 	for k, v := range br.Headers {
 		w.Header().Set(k, v)

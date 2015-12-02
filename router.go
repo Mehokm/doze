@@ -12,13 +12,13 @@ var _ = fmt.Sprint()
 var regParam = regexp.MustCompile(`{(\w+)(:\w+)?}`)
 
 const (
-	IntParam    = "i"
-	StringParam = "a"
+	IntParam      = "i"
+	AlphaNumParam = "an"
 )
 
 var regMap = map[string]string{
-	IntParam:    `([0-9]+)`,
-	StringParam: `([0-9A-Za-z]+)`,
+	IntParam:      `([0-9]+)`,
+	AlphaNumParam: `([0-9A-Za-z]+)`,
 }
 
 type Route struct {
@@ -42,14 +42,13 @@ func (r *Route) init() {
 		if isParam := regParam.MatchString(chunk); isParam {
 			trimmed := strings.Trim(chunk, "{}")
 			param := trimmed
-			paramType := StringParam
 			regex := `([^/]+)`
 
 			if cIndex := strings.Index(trimmed, ":"); cIndex != -1 {
 				param = trimmed[:cIndex]
-				paramType = trimmed[cIndex+1:]
+				regType := trimmed[cIndex+1:]
 
-				if reg, valid := regMap[paramType]; valid {
+				if reg, valid := regMap[regType]; valid {
 					regex = reg
 				}
 			}
