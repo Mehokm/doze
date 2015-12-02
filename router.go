@@ -2,7 +2,6 @@ package rest
 
 import (
 	"fmt"
-	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
@@ -13,25 +12,21 @@ var _ = fmt.Sprint()
 var regParam = regexp.MustCompile(`{(\w+)(:\w+)?}`)
 
 const (
-	PARAM_I = "i"
-	PARAM_A = "a"
+	IntParam    = "i"
+	StringParam = "a"
 )
 
 var regMap = map[string]string{
-	PARAM_I: `([0-9]+)`,
-	PARAM_A: `([0-9A-Za-z]+)`,
-}
-var typeMap = map[string]reflect.Kind{
-	PARAM_I: reflect.Int,
-	PARAM_A: reflect.String,
+	IntParam:    `([0-9]+)`,
+	StringParam: `([0-9A-Za-z]+)`,
 }
 
 type Route struct {
-	Path       string
-	action     map[string]ControllerAction
-	paramTypes map[string]reflect.Kind
-	Params     map[string]interface{}
-	regex      *regexp.Regexp
+	Path   string
+	action map[string]ControllerAction
+	params []string
+	Params map[string]interface{}
+	regex  *regexp.Regexp
 }
 
 /*
@@ -42,29 +37,30 @@ func (r *Route) init() {
 	chunks := strings.Split(r.Path, "/")
 	regChunks := make([]string, len(chunks))
 
-	paramTypes := make(map[string]reflect.Kind)
+	var params []string
 	for i, chunk := range chunks {
 		if isParam := regParam.MatchString(chunk); isParam {
 			trimmed := strings.Trim(chunk, "{}")
 			param := trimmed
-			paramType := PARAM_A
+			paramType := StringParam
 			regex := `([^/]+)`
 
 			if cIndex := strings.Index(trimmed, ":"); cIndex != -1 {
 				param = trimmed[:cIndex]
 				paramType = trimmed[cIndex+1:]
+
 				if reg, valid := regMap[paramType]; valid {
 					regex = reg
 				}
 			}
-			paramTypes[param] = typeMap[paramType]
+			params = append(params, param)
 			regChunks[i] = regex
 		} else {
 			regChunks[i] = chunk
 		}
 	}
 	r.regex = regexp.MustCompile(strings.Join(regChunks, "/") + "/?")
-	r.paramTypes = paramTypes
+	r.params = params
 }
 
 /*
@@ -78,22 +74,13 @@ func (r *Route) match(test string) bool {
 	matches := r.regex.FindStringSubmatch(test)
 	if matches != nil && matches[0] == test {
 		r.Params = make(map[string]interface{})
-		paramKeys := make([]string, len(r.paramTypes))
-		index := 0
-		for key, _ := range r.paramTypes {
-			paramKeys[index] = key
-			index++
-		}
+
 		for i, m := range matches[1:] {
-			switch r.paramTypes[paramKeys[i]] {
-			case reflect.Int:
-				iM, err := strconv.Atoi(m)
-				if err != nil {
-					panic(err)
-				}
-				r.Params[paramKeys[i]] = iM
-			default:
-				r.Params[paramKeys[i]] = m
+			iM, err := strconv.Atoi(m)
+			if err == nil {
+				r.Params[r.params[i]] = iM
+			} else {
+				r.Params[r.params[i]] = m
 			}
 		}
 		return true
