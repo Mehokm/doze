@@ -2,7 +2,6 @@ package rest
 
 import (
 	"encoding/json"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 )
@@ -98,9 +97,5 @@ func (c Context) FormData() url.Values {
 
 // BindJSONEntity binds the JSON body from the request to an interface{}
 func (c Context) BindJSONEntity(i interface{}) error {
-	body, err := ioutil.ReadAll(c.Request.Body)
-	if err != nil {
-		return err
-	}
-	return json.Unmarshal(body, i)
+	return json.NewDecoder(c.Request.Body).Decode(&i)
 }
