@@ -1,13 +1,11 @@
 package rest
 
-import (
-	"reflect"
-	"testing"
-)
+import "testing"
 
 func TestRouter_GetRoute(t *testing.T) {
+	action := TestController{}.SimpleGet
 	router := DefaultRouter().RouteMap(
-		NewRoute().Named("TestRoute").For("/people/{id:i}/details/{name:a}").With("GET", TestController{}.TestAction),
+		NewRoute().Named("TestRoute").For("/people/{id:i}/details/{name:a}").With("GET", action),
 	)
 
 	testRoute := router.GetRoute("TestRoute")
@@ -16,7 +14,9 @@ func TestRouter_GetRoute(t *testing.T) {
 		t.Error("Expected Path to match '/people/{id:i}/details/{name:a}'")
 	}
 
-	if !reflect.DeepEqual(map[string]string{"GET": "TestAction"}, testRoute.action) {
-		t.Error("Expected Action to match")
-	}
+	// a := testRoute.action["GET"]
+	// fmt.Println(&action == &a)
+	// if !reflect.DeepEqual(map[string]ControllerAction{"GET": action}, testRoute.action) {
+	// 	t.Error("Expected Action to match")
+	// }
 }
