@@ -19,7 +19,7 @@ func (t TestController) SimpleGet(c Context) ResponseSender {
 func (t TestController) SimplePost(c Context) ResponseSender {
 	var ts TestStruct
 
-	c.BindJsonEntity(&ts)
+	c.BindJSONEntity(&ts)
 
 	return NewOKJSONResponse(ts)
 }
@@ -27,7 +27,7 @@ func (t TestController) SimplePost(c Context) ResponseSender {
 func (t TestController) SimplePut(c Context) ResponseSender {
 	var ts TestStruct
 
-	c.BindJsonEntity(&ts)
+	c.BindJSONEntity(&ts)
 	ts.Message = ts.Message + " Updated"
 	return NewOKJSONResponse(ts)
 }
@@ -52,8 +52,6 @@ func setup() {
 		NewRoute().Named("simplePost").For(RestRoot+"/simplepost").With(MethodPost, TestController{}.SimplePost),
 		NewRoute().Named("simplePut").For(RestRoot+"/simpleput").With(MethodPut, TestController{}.SimplePut),
 	)
-
-	mux.Handle(RestRoot+"/", NewHandler(r))
 }
 
 func teardown() {
@@ -64,6 +62,8 @@ func TestRestMethodNotAllowed(t *testing.T) {
 	setup()
 	defer teardown()
 
+	mux.Handle(RestRoot+"/", NewHandler(r))
+
 	resp, _ := http.Get(server.URL + RestRoot + "/simplepost")
 
 	assert.Equal(t, http.StatusMethodNotAllowed, resp.StatusCode, "they should be equal")
@@ -72,6 +72,8 @@ func TestRestMethodNotAllowed(t *testing.T) {
 func TestRestMethodNotFound(t *testing.T) {
 	setup()
 	defer teardown()
+
+	mux.Handle(RestRoot+"/", NewHandler(r))
 
 	resp, _ := http.Get(server.URL + RestRoot + "/notfound")
 
@@ -82,29 +84,75 @@ func TestRestSimpleGet(t *testing.T) {
 	setup()
 	defer teardown()
 
+	mux.Handle(RestRoot+"/", NewHandler(r))
+
 	resp, _ := http.Get(server.URL + RestRoot + "/simpleget")
 	body, _ := ioutil.ReadAll(resp.Body)
 
-	assert.Equal(t, string(body), `{"Message":"Simple Get"}`, "they should be equal")
+	assert.Equal(t, `{"Message":"Simple Get"}`, string(body), "they should be equal")
 }
 
 func TestRestSimplePost(t *testing.T) {
 	setup()
 	defer teardown()
 
+	mux.Handle(RestRoot+"/", NewHandler(r))
+
 	resp, _ := http.Post(server.URL+RestRoot+"/simplepost", "application/json", strings.NewReader(`{"Message":"Simple Post"}`))
 	body, _ := ioutil.ReadAll(resp.Body)
 
-	assert.Equal(t, string(body), `{"Message":"Simple Post"}`, "they should be equal")
+	assert.Equal(t, `{"Message":"Simple Post"}`, string(body), "they should be equal")
 }
 
 func TestRestSimplePut(t *testing.T) {
 	setup()
 	defer teardown()
 
+	mux.Handle(RestRoot+"/", NewHandler(r))
+
 	req, _ := http.NewRequest(MethodPut, server.URL+RestRoot+"/simpleput", strings.NewReader(`{"Message":"Simple Put"}`))
 	resp, _ := http.DefaultClient.Do(req)
 	body, _ := ioutil.ReadAll(resp.Body)
 
-	assert.Equal(t, string(body), `{"Message":"Simple Put Updated"}`, "they should be equal")
+	assert.Equal(t, `{"Message":"Simple Put Updated"}`, string(body), "they should be equal")
+}
+
+func TestRestHandlerInterceptorTrue(t *testing.T) {
+	setup()
+	defer teardown()
+
+	h := NewHandler(r)
+
+	h.AddInterceptor(func(c Context) bool {
+		c.ResponseWriter.Header().Add("test", "true")
+
+		return true
+	})
+
+	mux.Handle(RestRoot+"/", h)
+
+	resp, _ := http.Get(server.URL + RestRoot + "/simpleget")
+
+	assert.Equal(t, "true", resp.Header.Get("test"), "they should be equal")
+}
+
+func TestRestHandlerInterceptorFalse(t *testing.T) {
+	setup()
+	defer teardown()
+
+	h := NewHandler(r)
+
+	h.AddInterceptor(func(c Context) bool {
+		c.ResponseWriter.Header().Add("test", "false")
+
+		return false
+	})
+
+	mux.Handle(RestRoot+"/", h)
+
+	resp, _ := http.Get(server.URL + RestRoot + "/simpleget")
+	body, _ := ioutil.ReadAll(resp.Body)
+
+	assert.Equal(t, "false", resp.Header.Get("test"), "they should be equal")
+	assert.Equal(t, "", string(body), "they should be equal")
 }

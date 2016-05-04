@@ -96,8 +96,8 @@ func (c Context) FormData() url.Values {
 	}
 }
 
-// BindJsonEntity binds the JSON body from the request to an interface{}
-func (c Context) BindJsonEntity(i interface{}) error {
+// BindJSONEntity binds the JSON body from the request to an interface{}
+func (c Context) BindJSONEntity(i interface{}) error {
 	body, err := ioutil.ReadAll(c.Request.Body)
 	if err != nil {
 		return err
