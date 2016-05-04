@@ -1,46 +1,61 @@
 package rest
 
 import (
-	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
-type TestController struct {
-	TestAction ControllerAction
+type TestController struct{}
+
+func (t TestController) TestAction(c Context) ResponseSender {
+	return NewOKJSONResponse("Action Jackson")
 }
 
-const RestRoot = "/rest/api/"
+const RestRoot = "/rest/api"
 
-func TestRestMethodNotAllowed(t *testing.T) {
-	testController := TestController{}
-	testController.TestAction = func(hb HttpBundle) Response {
-		var body interface{}
-		body = "Action Jackson"
-		return NewOKJsonResponse(body)
-	}
+var (
+	mux    *http.ServeMux
+	server *httptest.Server
+	r      router
+)
 
-	router := DefaultRouter().RouteMap(
-		NewRoute().For(RestRoot+"/test").With("GET", "TestAction").Using(testController),
+func setup() {
+	mux = http.NewServeMux()
+	server = httptest.NewServer(mux)
+	r = DefaultRouter().RouteMap(
+		NewRoute().Named("notAllowed").For(RestRoot+"/notallowed").With(MethodPost, TestController{}.TestAction),
+		NewRoute().Named("simpleGet").For(RestRoot+"/simpleget").With(MethodGet, TestController{}.TestAction),
 	)
 
-	rh := NewRestHandler(router)
+	mux.Handle(RestRoot+"/", NewHandler(r))
+}
 
-	ts := httptest.NewServer(rh)
-	defer ts.Close()
+func teardown() {
+	server.Close()
+}
 
-	fmt.Println(ts.URL + RestRoot + "test")
-	res, err := http.Get(ts.URL + RestRoot + "test")
+func Get(uri string) (string, error) {
+	res, err := http.Get(server.URL + uri)
 	if err != nil {
-		log.Fatal(err)
+		return "", err
 	}
 	body, err := ioutil.ReadAll(res.Body)
 	res.Body.Close()
 	if err != nil {
-		log.Fatal(err)
+		return "", err
 	}
-	fmt.Println(string(body))
+	return string(body), err
+}
+
+func TestRestMethodNotAllowed(t *testing.T) {
+	setup()
+	defer teardown()
+
+	resp, _ := http.Get(server.URL + RestRoot + "/notallowed")
+
+	assert.Equal(t, http.StatusMethodNotAllowed, resp.StatusCode, "they should be equal")
 }

@@ -7,7 +7,7 @@ import (
 
 func TestRouter_GetRoute(t *testing.T) {
 	router := DefaultRouter().RouteMap(
-		NewRoute().Named("TestRoute").For("/people/{id:i}/details/{name:a}").With("GET", "TestAction").Using(TestController{}),
+		NewRoute().Named("TestRoute").For("/people/{id:i}/details/{name:a}").With("GET", TestController{}.TestAction),
 	)
 
 	testRoute := router.GetRoute("TestRoute")
@@ -16,11 +16,7 @@ func TestRouter_GetRoute(t *testing.T) {
 		t.Error("Expected Path to match '/people/{id:i}/details/{name:a}'")
 	}
 
-	if !reflect.DeepEqual(map[string]string{"GET": "TestAction"}, testRoute.Action) {
+	if !reflect.DeepEqual(map[string]string{"GET": "TestAction"}, testRoute.action) {
 		t.Error("Expected Action to match")
-	}
-
-	if !reflect.DeepEqual(TestController{}, testRoute.Controller) {
-		t.Error("Expected Controller to match")
 	}
 }
