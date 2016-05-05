@@ -60,7 +60,7 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	action, actionExists := route.action[r.Method]
+	action, actionExists := route.actions[r.Method]
 	if !actionExists {
 		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
 		return
@@ -75,11 +75,6 @@ type Context struct {
 	Request        *http.Request
 	ResponseWriter http.ResponseWriter
 	Route          *Route
-}
-
-// RouteParams returns route params as map[string]interface{}
-func (c Context) RouteParams() map[string]interface{} {
-	return c.Route.Params
 }
 
 // FormData returns data related to the request from GET, POST, or PUT

@@ -5,10 +5,9 @@ type router struct {
 }
 
 type routeBuilder struct {
-	path       string
-	controller interface{}
-	action     map[string]ControllerAction
-	routeName  string
+	path      string
+	actions   map[string]ControllerAction
+	routeName string
 }
 
 var defaultRouter router
@@ -22,7 +21,7 @@ func DefaultRouter() router {
 }
 
 func NewRoute() *routeBuilder {
-	return &routeBuilder{action: make(map[string]ControllerAction)}
+	return &routeBuilder{actions: make(map[string]ControllerAction)}
 }
 
 func (rb *routeBuilder) Named(name string) *routeBuilder {
@@ -36,7 +35,7 @@ func (rb *routeBuilder) For(path string) *routeBuilder {
 }
 
 func (rb *routeBuilder) With(method string, action ControllerAction) *routeBuilder {
-	rb.action[method] = action
+	rb.actions[method] = action
 	return rb
 }
 
@@ -47,8 +46,8 @@ func (rb *routeBuilder) And(method string, action ControllerAction) *routeBuilde
 func (ro router) RouteMap(rbs ...*routeBuilder) router {
 	for _, routeBuilder := range rbs {
 		route := &Route{
-			Path:   routeBuilder.path,
-			action: routeBuilder.action,
+			path:    routeBuilder.path,
+			actions: routeBuilder.actions,
 		}
 		route.init()
 
@@ -57,6 +56,7 @@ func (ro router) RouteMap(rbs ...*routeBuilder) router {
 		}
 		ro.Routes[routeBuilder.routeName] = route
 	}
+
 	return ro
 }
 
@@ -70,5 +70,6 @@ func (ro router) Match(test string) *Route {
 			return route
 		}
 	}
+
 	return nil
 }

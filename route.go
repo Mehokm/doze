@@ -6,80 +6,71 @@ import (
 	"strings"
 )
 
-var regParam = regexp.MustCompile(`{(\w+)(:\w+)?}`)
-
 const (
 	IntParam      = "i"
 	AlphaNumParam = "an"
 )
 
+var regParam = regexp.MustCompile(`{(\w+)(:\w+)?}`)
 var regMap = map[string]string{
 	IntParam:      `([0-9]+)`,
 	AlphaNumParam: `([0-9A-Za-z]+)`,
 }
 
 type Route struct {
-	Path   string
-	action map[string]ControllerAction
-	params []string
-	Params map[string]interface{}
-	regex  *regexp.Regexp
+	path        string
+	actions     map[string]ControllerAction
+	params      []string
+	paramValues map[string]interface{}
+	regex       *regexp.Regexp
 }
 
-/*
-* with the below comment, maybe remove the abbr for regex and just
-* have users supply their own regex.  It would simplify the init()
- */
 func (r *Route) init() {
-	chunks := strings.Split(r.Path, "/")
-	regChunks := make([]string, len(chunks))
+	toSub := regParam.FindAllStringSubmatch(r.path, -1)
 
-	var params []string
-	for i, chunk := range chunks {
-		if isParam := regParam.MatchString(chunk); isParam {
-			trimmed := strings.Trim(chunk, "{}")
-			param := trimmed
-			regex := `([^/]+)`
+	regString := r.path
 
-			if cIndex := strings.Index(trimmed, ":"); cIndex != -1 {
-				param = trimmed[:cIndex]
-				regType := trimmed[cIndex+1:]
+	if len(toSub) > 0 {
+		r.params = make([]string, len(toSub))
 
-				if reg, valid := regMap[regType]; valid {
-					regex = reg
-				}
+		for i, v := range toSub {
+			whole, param, pType, regex := v[0], v[1], v[2], `([^/]+)`
+
+			r.params[i] = param
+
+			if r, ok := regMap[pType[1:]]; ok {
+				regex = r
 			}
-			params = append(params, param)
-			regChunks[i] = regex
-		} else {
-			regChunks[i] = chunk
+			regString = strings.Replace(regString, whole, regex, -1)
 		}
 	}
-	r.regex = regexp.MustCompile(strings.Join(regChunks, "/") + "/?")
-	r.params = params
+	r.regex = regexp.MustCompile(regString + "/?")
 }
 
-/*
-* maybe better way to match?  Split req uri and route uri an compare
-* if the differences are either something and a param, eg. in { }, then
-* run the regex that is in the { }, if any then default regex, against
-* the same indexed chunk.  If it passes then move on to the next,
-* otherwise its not a match.
- */
 func (r *Route) match(test string) bool {
 	matches := r.regex.FindStringSubmatch(test)
 	if matches != nil && matches[0] == test {
-		r.Params = make(map[string]interface{})
+		r.paramValues = make(map[string]interface{})
 
 		for i, m := range matches[1:] {
-			iM, err := strconv.Atoi(m)
-			if err == nil {
-				r.Params[r.params[i]] = iM
-			} else {
-				r.Params[r.params[i]] = m
-			}
+			r.paramValues[r.params[i]] = m
 		}
+
 		return true
 	}
+
 	return false
+}
+
+func (r *Route) Params() map[string]interface{} {
+	pv := make(map[string]interface{})
+
+	for i, v := range r.paramValues {
+		pv[i] = v
+		if n, err := strconv.Atoi(v.(string)); err == nil {
+			pv[i] = n
+		}
+	}
+
+	return pv
 }
