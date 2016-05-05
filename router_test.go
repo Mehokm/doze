@@ -29,6 +29,7 @@ func TestRouterGetRouteWithoutName(t *testing.T) {
 func TestRouterRouteMatch(t *testing.T) {
 	router := DefaultRouter().RouteMap(
 		NewRoute().For("/people/{id:i}/details/{name:a}").With("GET", TestController{}.SimpleGet),
+		NewRoute().For("/people/{id}").With("GET", TestController{}.SimpleGet),
 	)
 
 	route1 := router.Match("/people/10/details/job")
@@ -38,6 +39,14 @@ func TestRouterRouteMatch(t *testing.T) {
 	route2 := router.Match("/people/job/details/10")
 
 	assert.Nil(t, route2, "route2 should be nil")
+
+	route3 := router.Match("/people/10")
+
+	assert.NotNil(t, route3, "route3 should not be nil")
+
+	route4 := router.Match("/people/job")
+
+	assert.NotNil(t, route4, "route4 should not be nil")
 }
 
 func TestRouteParams(t *testing.T) {

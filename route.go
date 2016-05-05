@@ -38,8 +38,10 @@ func (r *Route) init() {
 
 			r.params[i] = param
 
-			if r, ok := regMap[pType[1:]]; ok {
-				regex = r
+			if len(pType) > 1 {
+				if r, ok := regMap[pType[1:]]; ok {
+					regex = r
+				}
 			}
 			regString = strings.Replace(regString, whole, regex, -1)
 		}
