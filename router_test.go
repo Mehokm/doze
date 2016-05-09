@@ -60,3 +60,46 @@ func TestRouteParams(t *testing.T) {
 	assert.Equal(t, 10, route.Params()["id"], "they should match")
 	assert.Equal(t, "job", route.Params()["name"], "they should match")
 }
+
+func TestRouteBuildShouldError(t *testing.T) {
+	router := DefaultRouter().RouteMap(
+		NewRoute().Named("test").For("/people/{id:i}/details/{name}").With("GET", TestController{}.SimpleGet),
+	)
+
+	m1 := map[string]interface{}{
+		"id":   65,
+		"not":  "valid",
+		"name": "Joe",
+	}
+
+	s1, err1 := router.GetRoute("test").Build(m1)
+
+	assert.EqualError(t, err1, "wrong number of parameters: 3 given, 2 required", "they should match")
+	assert.Equal(t, "", s1, "they should match")
+
+	m2 := map[string]interface{}{
+		"id":  65,
+		"not": "valid",
+	}
+
+	s2, err2 := router.GetRoute("test").Build(m2)
+
+	assert.EqualError(t, err2, "parameter not valid: not", "they should match")
+	assert.Equal(t, "", s2, "they should match")
+}
+
+func TestRouteBuild(t *testing.T) {
+	router := DefaultRouter().RouteMap(
+		NewRoute().Named("test").For("/people/{id:i}/details/{name}").With("GET", TestController{}.SimpleGet),
+	)
+
+	m := map[string]interface{}{
+		"id":   65,
+		"name": "Joe",
+	}
+
+	s, err := router.GetRoute("test").Build(m)
+
+	assert.Nil(t, err, "error should be nil")
+	assert.Equal(t, "/people/65/details/Joe", s, "they should match")
+}

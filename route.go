@@ -1,6 +1,7 @@
 package rest
 
 import (
+	"fmt"
 	"regexp"
 	"strconv"
 	"strings"
@@ -75,4 +76,29 @@ func (r *Route) Params() map[string]interface{} {
 	}
 
 	return pv
+}
+
+func (r *Route) Build(m map[string]interface{}) (string, error) {
+	if len(r.params) != len(m) {
+		return "", fmt.Errorf("wrong number of parameters: %v given, %v required", len(m), len(r.params))
+	}
+
+	s := r.path
+	for p, v := range m {
+		reg := regexp.MustCompile(fmt.Sprintf(`{%v(:\w+)?}`, p))
+
+		if !reg.MatchString(s) {
+			return "", fmt.Errorf("parameter not valid: %v", p)
+		}
+
+		switch v.(type) {
+		case int:
+			i := strconv.Itoa(v.(int))
+			s = reg.ReplaceAllString(s, i)
+		default:
+			s = reg.ReplaceAllString(s, v.(string))
+		}
+
+	}
+	return s, nil
 }
