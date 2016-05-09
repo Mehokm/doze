@@ -7,10 +7,10 @@ import (
 )
 
 const (
-	MethodGet    = "GET"
-	MethodPost   = "POST"
-	MethodPut    = "PUT"
-	MethodDelete = "DELETE"
+	MethodGET    = "GET"
+	MethodPOST   = "POST"
+	MethodPUT    = "PUT"
+	MethodDELETE = "DELETE"
 )
 
 // ControllerAction is a type for all controller actions

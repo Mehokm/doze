@@ -48,9 +48,9 @@ func setup() {
 	mux = http.NewServeMux()
 	server = httptest.NewServer(mux)
 	r = DefaultRouter().RouteMap(
-		NewRoute().Named("simpleGet").For(RestRoot+"/simpleget").With(MethodGet, TestController{}.SimpleGet),
-		NewRoute().Named("simplePost").For(RestRoot+"/simplepost").With(MethodPost, TestController{}.SimplePost),
-		NewRoute().Named("simplePut").For(RestRoot+"/simpleput").With(MethodPut, TestController{}.SimplePut),
+		NewRoute().Named("simpleGet").For(RestRoot+"/simpleget").With(MethodGET, TestController{}.SimpleGet),
+		NewRoute().Named("simplePost").For(RestRoot+"/simplepost").With(MethodPOST, TestController{}.SimplePost),
+		NewRoute().Named("simplePut").For(RestRoot+"/simpleput").With(MethodPUT, TestController{}.SimplePut),
 	)
 }
 
@@ -110,7 +110,7 @@ func TestRestSimplePut(t *testing.T) {
 
 	mux.Handle(RestRoot+"/", NewHandler(r))
 
-	req, _ := http.NewRequest(MethodPut, server.URL+RestRoot+"/simpleput", strings.NewReader(`{"Message":"Simple Put"}`))
+	req, _ := http.NewRequest(MethodPUT, server.URL+RestRoot+"/simpleput", strings.NewReader(`{"Message":"Simple Put"}`))
 	resp, _ := http.DefaultClient.Do(req)
 	body, _ := ioutil.ReadAll(resp.Body)
 
