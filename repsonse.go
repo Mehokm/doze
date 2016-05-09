@@ -24,16 +24,16 @@ type GzipResponse struct {
 	br BasicResponse
 }
 
-// NewOKJsonResponse returns a BasicResponse tailored for JSON with status code of 200
-func NewOKJsonResponse(body interface{}) BasicResponse {
-	jr := basicJsonResponse(body)
+// NewOKJSONResponse returns a BasicResponse tailored for JSON with status code of 200
+func NewOKJSONResponse(body interface{}) BasicResponse {
+	jr := basicJSONResponse(body)
 	jr.StatusCode = http.StatusOK
 	return jr
 }
 
-// NewCreatedJsonResponse returns a BasicResponse tailored for JSON with status code of 201
-func NewCreatedJsonResponse(body interface{}) BasicResponse {
-	jr := basicJsonResponse(body)
+// NewCreatedJSONResponse returns a BasicResponse tailored for JSON with status code of 201
+func NewCreatedJSONResponse(body interface{}) BasicResponse {
+	jr := basicJSONResponse(body)
 	jr.StatusCode = http.StatusCreated
 	return jr
 }
@@ -54,6 +54,7 @@ func NewNotFoundResponse() BasicResponse {
 	}
 }
 
+// NewInternalServerErrorResponse returns a BasicResponse defaulted for an internal server error
 func NewInternalServerErrorResponse() BasicResponse {
 	return BasicResponse{
 		StatusCode: http.StatusInternalServerError,
@@ -77,7 +78,7 @@ func (br BasicResponse) Send(w io.Writer) {
 	w.Write(br.Body)
 }
 
-func basicJsonResponse(body interface{}) BasicResponse {
+func basicJSONResponse(body interface{}) BasicResponse {
 	headers := make(map[string]string)
 	headers["Content-Type"] = "application/json"
 
@@ -91,7 +92,7 @@ func basicJsonResponse(body interface{}) BasicResponse {
 }
 
 // NewGzipResponse creates a new GzipResponse that wraps a BasicResponse that adds Content-Encoding to gzip
-func NewGzipResponse(br BasicResponse) ResponseSender {
+func NewGzipResponse(br BasicResponse) GzipResponse {
 	br.Headers["Content-Encoding"] = "gzip"
 
 	return GzipResponse{br}
