@@ -5,6 +5,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 const (
@@ -24,6 +25,7 @@ type Route struct {
 	params      []string
 	paramValues map[string]interface{}
 	regex       *regexp.Regexp
+	sync.RWMutex
 }
 
 func (r *Route) init() {
@@ -53,19 +55,23 @@ func (r *Route) init() {
 func (r *Route) match(test string) bool {
 	matches := r.regex.FindStringSubmatch(test)
 	if matches != nil && matches[0] == test {
+		r.Lock()
+		defer r.Unlock()
+
 		r.paramValues = make(map[string]interface{})
 
 		for i, m := range matches[1:] {
 			r.paramValues[r.params[i]] = m
 		}
-
 		return true
 	}
-
 	return false
 }
 
 func (r *Route) Params() map[string]interface{} {
+	r.RLock()
+	defer r.RUnlock()
+
 	pv := make(map[string]interface{})
 
 	for i, v := range r.paramValues {
@@ -74,11 +80,13 @@ func (r *Route) Params() map[string]interface{} {
 			pv[i] = n
 		}
 	}
-
 	return pv
 }
 
 func (r *Route) Build(m map[string]interface{}) (string, error) {
+	r.RLock()
+	defer r.RUnlock()
+
 	if len(r.params) != len(m) {
 		return "", fmt.Errorf("wrong number of parameters: %v given, %v required", len(m), len(r.params))
 	}
