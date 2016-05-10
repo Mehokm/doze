@@ -21,13 +21,13 @@ type Interceptor func(Context) bool
 
 // Handler implements http.Handler and contains the router and controllers for the REST api
 type handler struct {
-	router       router
+	router       Routable
 	interceptors []Interceptor
 }
 
 // NewHandler returns a new Handler with router initialized
-func NewHandler(router router) *handler {
-	return &handler{router, make([]Interceptor, 0)}
+func NewHandler(r Routable) *handler {
+	return &handler{r, make([]Interceptor, 0)}
 }
 
 func (h *handler) AddInterceptor(i Interceptor) {

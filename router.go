@@ -1,5 +1,10 @@
 package rest
 
+type Routable interface {
+	Get(string) *Route
+	Match(string) *Route
+}
+
 type router struct {
 	Routes map[string]*Route
 }
@@ -10,14 +15,24 @@ type routeBuilder struct {
 	routeName string
 }
 
-var defaultRouter router
+var routers map[string]router
 
 func init() {
-	defaultRouter = router{make(map[string]*Route)}
+	routers = make(map[string]router)
+	routers["default"] = router{make(map[string]*Route)}
+}
+
+func NewRouter(name string) router {
+	routers[name] = router{make(map[string]*Route)}
+	return routers[name]
 }
 
 func DefaultRouter() router {
-	return defaultRouter
+	return routers["default"]
+}
+
+func Router(name string) router {
+	return routers[name]
 }
 
 func NewRoute() *routeBuilder {
@@ -60,7 +75,7 @@ func (ro router) RouteMap(rbs ...*routeBuilder) router {
 	return ro
 }
 
-func (ro router) GetRoute(name string) *Route {
+func (ro router) Get(name string) *Route {
 	return ro.Routes[name]
 }
 

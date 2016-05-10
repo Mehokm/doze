@@ -6,12 +6,26 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestRouterMap(t *testing.T) {
+	v1 := DefaultRouter().RouteMap(
+		NewRoute().Named("TestRoute").For("/v1/people/{id:i}/details/{name:a}").With("GET", TestController{}.SimpleGet),
+	)
+
+	v2 := NewRouter("v2").RouteMap(
+		NewRoute().Named("TestRoute").For("/v2/people/{id:i}/details/{name:a}").With("GET", TestController{}.SimpleGet),
+	)
+
+	assert.NotEqual(t, v1.Get("TestRoute"), v2.Get("TestRoute"), "should not be equal")
+	assert.Equal(t, "/v1/people/{id:i}/details/{name:a}", v1.Get("TestRoute").path, "should be equal")
+	assert.Equal(t, "/v2/people/{id:i}/details/{name:a}", v2.Get("TestRoute").path, "should be equal")
+}
+
 func TestRouterGetRouteWithName(t *testing.T) {
 	router := DefaultRouter().RouteMap(
 		NewRoute().Named("TestRoute").For("/people/{id:i}/details/{name:a}").With("GET", TestController{}.SimpleGet),
 	)
 
-	testRoute := router.GetRoute("TestRoute")
+	testRoute := router.Get("TestRoute")
 
 	assert.Equal(t, "/people/{id:i}/details/{name:a}", testRoute.path, "paths should match")
 }
@@ -21,7 +35,7 @@ func TestRouterGetRouteWithoutName(t *testing.T) {
 		NewRoute().For("/people/{id:i}/details/{name:a}").With("GET", TestController{}.SimpleGet),
 	)
 
-	testRoute := router.GetRoute("/people/{id:i}/details/{name:a}")
+	testRoute := router.Get("/people/{id:i}/details/{name:a}")
 
 	assert.Equal(t, "/people/{id:i}/details/{name:a}", testRoute.path, "paths should match")
 }
@@ -72,7 +86,7 @@ func TestRouteBuildShouldError(t *testing.T) {
 		"name": "Joe",
 	}
 
-	s1, err1 := router.GetRoute("test").Build(m1)
+	s1, err1 := router.Get("test").Build(m1)
 
 	assert.EqualError(t, err1, "wrong number of parameters: 3 given, 2 required", "they should match")
 	assert.Equal(t, "", s1, "they should match")
@@ -82,7 +96,7 @@ func TestRouteBuildShouldError(t *testing.T) {
 		"not": "valid",
 	}
 
-	s2, err2 := router.GetRoute("test").Build(m2)
+	s2, err2 := router.Get("test").Build(m2)
 
 	assert.EqualError(t, err2, "parameter not valid: not", "they should match")
 	assert.Equal(t, "", s2, "they should match")
@@ -98,7 +112,7 @@ func TestRouteBuild(t *testing.T) {
 		"name": "Joe",
 	}
 
-	s, err := router.GetRoute("test").Build(m)
+	s, err := router.Get("test").Build(m)
 
 	assert.Nil(t, err, "error should be nil")
 	assert.Equal(t, "/people/65/details/Joe", s, "they should match")
