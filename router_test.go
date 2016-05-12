@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestRouterMap(t *testing.T) {
+func TestNamedRouterMap(t *testing.T) {
 	v1 := DefaultRouter().RouteMap(
 		NewRoute().Named("TestRoute").For("/v1/people/{id:i}/details/{name:a}").With("GET", TestController{}.SimpleGet),
 	)
@@ -116,4 +116,14 @@ func TestRouteBuild(t *testing.T) {
 
 	assert.Nil(t, err, "error should be nil")
 	assert.Equal(t, "/people/65/details/Joe", s, "they should match")
+}
+
+func TestRouterPrefix(t *testing.T) {
+	router := DefaultRouter().Prefix("/api/v3").RouteMap(
+		NewRoute().Named("TestRoute").For("/people/{id:i}/details/{name:a}").With("GET", TestController{}.SimpleGet),
+	)
+
+	testRoute := router.Get("TestRoute")
+
+	assert.Equal(t, "/api/v3/people/{id:i}/details/{name:a}", testRoute.path, "paths should match")
 }
