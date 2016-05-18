@@ -45,8 +45,11 @@ func main() {
 	root := "/api/v1"
 
 	router := rest.DefaultRouter().Prefix(root).RouteMap(
-		rest.NewRoute().For("/users").With(rest.MethodGET, UserController{}.GetAllUsers).And(rest.MethodPOST, UserController{}.CreateUser),
-		rest.NewRoute().For("/users/{id:i}").With(rest.MethodGET, UserController{}.GetUser),
+		rest.NewRoute().For("/users").
+			With(rest.MethodGET, UserController{}.GetAllUsers).
+			And(rest.MethodPOST, UserController{}.CreateUser),
+		rest.NewRoute().For("/users/{id:i}").
+			With(rest.MethodGET, UserController{}.GetUser),
 	)
 
 	h := rest.NewHandler(router)
