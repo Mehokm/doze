@@ -27,7 +27,7 @@ func (uc UserController) GetUser(c rest.Context) rest.ResponseSender {
 
 // GetAllUsers action maps to route /users (GET)
 func (uc UserController) GetAllUsers(c rest.Context) rest.ResponseSender {
-	return rest.NewOKJSONResponse(users)
+	return rest.NewGzipResponse(rest.NewOKJSONResponse(users))
 }
 
 // CreateUser action maps to route /users (POST)

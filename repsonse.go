@@ -21,7 +21,7 @@ type BasicResponse struct {
 
 // GzipResponse is a wrapping response to gzip your BasicResponse
 type GzipResponse struct {
-	br BasicResponse
+	BasicResponse
 }
 
 // NewOKJSONResponse returns a BasicResponse tailored for JSON with status code of 200
@@ -100,10 +100,10 @@ func NewGzipResponse(br BasicResponse) GzipResponse {
 
 // Send creates a gzip writer and writes to the http.ResponseWriter
 func (gr GzipResponse) Send(w io.Writer) {
-	gr.br.setHeaders(w.(http.ResponseWriter))
+	gr.setHeaders(w.(http.ResponseWriter))
 
 	gz := gzip.NewWriter(w)
 	defer gz.Close()
 
-	gr.br.Send(gz)
+	gr.BasicResponse.Send(gz)
 }
