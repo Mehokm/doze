@@ -18,6 +18,7 @@ var users = []User{
 	User{"Bruce", "Wayne"},
 }
 
+// This is a stub db struct
 type StubDB struct{}
 
 func (s StubDB) execute(query string) {
