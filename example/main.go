@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"go-tfts"
 	"net/http"
 )
@@ -17,8 +18,16 @@ var users = []User{
 	User{"Bruce", "Wayne"},
 }
 
+type StubDB struct{}
+
+func (s StubDB) execute(query string) {
+	fmt.Println("I executed: " + query)
+}
+
 // UserController is a basic struct to encapsulate all user actions
-type UserController struct{}
+type UserController struct {
+	db StubDB
+}
 
 // GetUser action maps to route /users/{id:i}
 func (uc UserController) GetUser(c rest.Context) rest.ResponseSender {
@@ -38,18 +47,22 @@ func (uc UserController) CreateUser(c rest.Context) rest.ResponseSender {
 
 	users = append(users, user)
 
+	uc.db.execute(fmt.Sprintf("INSERT INTO User (`firstName`, `lastName`) VALUES ('%v', '%v')", user.FirstName, user.LastName))
+
 	return rest.NewCreatedJSONResponse(user)
 }
 
 func main() {
 	root := "/api/v1"
 
+	userController := UserController{StubDB{}}
+
 	router := rest.DefaultRouter().Prefix(root).RouteMap(
 		rest.NewRoute().For("/users").
-			With(rest.MethodGET, UserController{}.GetAllUsers).
-			And(rest.MethodPOST, UserController{}.CreateUser),
+			With(rest.MethodGET, userController.GetAllUsers).
+			And(rest.MethodPOST, userController.CreateUser),
 		rest.NewRoute().For("/users/{id:i}").
-			With(rest.MethodGET, UserController{}.GetUser),
+			With(rest.MethodGET, userController.GetUser),
 	)
 
 	h := rest.NewHandler(router)
