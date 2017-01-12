@@ -9,7 +9,7 @@ import (
 
 // ResponseSender is an interface to send response from ControllerActions
 type ResponseSender interface {
-	Send(w io.Writer)
+	Send(w io.Writer) (int, error)
 }
 
 // BasicResponse contains all basic properties for a response
@@ -62,7 +62,7 @@ func NewInternalServerErrorResponse() BasicResponse {
 	}
 }
 
-func (br BasicResponse) setHeaders(w http.ResponseWriter) {
+func (br BasicResponse) setHeaders(w *ResponseWriter) {
 	for k, v := range br.Headers {
 		w.Header().Set(k, v)
 	}
@@ -70,12 +70,12 @@ func (br BasicResponse) setHeaders(w http.ResponseWriter) {
 }
 
 // Send writes the BasicResponse body to the http.ResponseWriter
-func (br BasicResponse) Send(w io.Writer) {
-	if rw, ok := w.(http.ResponseWriter); ok {
+func (br BasicResponse) Send(w io.Writer) (int, error) {
+	if rw, ok := w.(*ResponseWriter); ok {
 		br.setHeaders(rw)
 	}
 
-	w.Write(br.Body)
+	return w.Write(br.Body)
 }
 
 func basicJSONResponse(body interface{}) BasicResponse {
@@ -99,11 +99,11 @@ func NewGzipResponse(br BasicResponse) GzipResponse {
 }
 
 // Send creates a gzip writer and writes to the http.ResponseWriter
-func (gr GzipResponse) Send(w io.Writer) {
-	gr.setHeaders(w.(http.ResponseWriter))
+func (gr GzipResponse) Send(w io.Writer) (int, error) {
+	gr.setHeaders(w.(*ResponseWriter))
 
 	gz := gzip.NewWriter(w)
 	defer gz.Close()
 
-	gr.BasicResponse.Send(gz)
+	return gr.BasicResponse.Send(gz)
 }

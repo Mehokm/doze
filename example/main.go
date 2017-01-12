@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"go-tfts"
+	"log"
 	"net/http"
 )
 
@@ -19,15 +20,15 @@ var users = []User{
 }
 
 // This is a stub db struct
-type StubDB struct{}
+type stubDB struct{}
 
-func (s StubDB) execute(query string) {
+func (s stubDB) execute(query string) {
 	fmt.Println("I executed: " + query)
 }
 
 // UserController is a basic struct to encapsulate all user actions
 type UserController struct {
-	db StubDB
+	db stubDB
 }
 
 // GetUser action maps to route /users/{id:i}
@@ -37,7 +38,9 @@ func (uc UserController) GetUser(c rest.Context) rest.ResponseSender {
 
 // GetAllUsers action maps to route /users (GET)
 func (uc UserController) GetAllUsers(c rest.Context) rest.ResponseSender {
-	return rest.NewGzipResponse(rest.NewOKJSONResponse(users))
+	fmt.Println("in controller")
+
+	return rest.NewOKJSONResponse(users)
 }
 
 // CreateUser action maps to route /users (POST)
@@ -56,7 +59,7 @@ func (uc UserController) CreateUser(c rest.Context) rest.ResponseSender {
 func main() {
 	root := "/api/v1"
 
-	userController := UserController{StubDB{}}
+	userController := UserController{stubDB{}}
 
 	router := rest.DefaultRouter().Prefix(root).RouteMap(
 		rest.NewRoute().For("/users").
@@ -68,6 +71,24 @@ func main() {
 
 	h := rest.NewHandler(router)
 
+	h.Use(func(c rest.Context) {
+		fmt.Println("before1")
+
+		c.Next()
+
+		fmt.Println("after1")
+	})
+
+	h.Use(func(c rest.Context) {
+		fmt.Println("before2")
+
+		c.Next()
+
+		fmt.Printf("Response length: %v", c.ResponseWriter.Size)
+		fmt.Println()
+	})
+
 	http.Handle(root+"/", h)
-	http.ListenAndServe(":8080", nil)
+
+	log.Fatal(http.ListenAndServe(":10100", nil))
 }

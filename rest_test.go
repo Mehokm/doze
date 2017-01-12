@@ -123,7 +123,7 @@ func TestRestHandlerInterceptorTrue(t *testing.T) {
 
 	h := NewHandler(r)
 
-	h.AddInterceptor(func(c Context) bool {
+	h.Intercept(func(c Context) bool {
 		c.ResponseWriter.Header().Add("test", "true")
 
 		return true
@@ -142,7 +142,7 @@ func TestRestHandlerInterceptorFalse(t *testing.T) {
 
 	h := NewHandler(r)
 
-	h.AddInterceptor(func(c Context) bool {
+	h.Intercept(func(c Context) bool {
 		c.ResponseWriter.Header().Add("test", "false")
 
 		return false
