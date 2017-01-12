@@ -11,7 +11,7 @@ type Context struct {
 	ResponseWriter *ResponseWriter
 	Route          *Route
 	middlewares    []Middleware
-	index          int
+	mIndex         int
 	action         ControllerAction
 }
 
@@ -36,16 +36,16 @@ func (c Context) BindJSONEntity(i interface{}) error {
 // EXPERIMENT
 
 func (c Context) Next() {
-	c.index++
+	c.mIndex++
 
 	c.run()
 }
 
 func (c Context) run() {
 	for {
-		if c.index < len(c.middlewares) {
-			c.middlewares[c.index](c)
-		} else if c.index == len(c.middlewares) {
+		if c.mIndex < len(c.middlewares) {
+			c.middlewares[c.mIndex](c)
+		} else if c.mIndex == len(c.middlewares) {
 			result := c.action(c)
 
 			size, err := result.Send(c.ResponseWriter)
@@ -61,7 +61,6 @@ func (c Context) run() {
 			return
 		}
 
-		// c.index++
 		c.middlewares = c.middlewares[1:]
 	}
 }
