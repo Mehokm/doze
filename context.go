@@ -43,6 +43,10 @@ func (c Context) Next() {
 
 func (c Context) run() {
 	for {
+		if c.ResponseWriter.Written() {
+			return
+		}
+
 		if c.mIndex < len(c.middlewares) {
 			c.middlewares[c.mIndex](c)
 		} else if c.mIndex == len(c.middlewares) {
@@ -54,11 +58,8 @@ func (c Context) run() {
 				panic(err)
 			}
 
+			// somehow move this into response.go
 			c.ResponseWriter.Size = size
-		}
-
-		if c.ResponseWriter.Written() {
-			return
 		}
 
 		c.middlewares = c.middlewares[1:]

@@ -14,6 +14,14 @@ type ResponseWriter struct {
 	Size int
 }
 
+func (rw *ResponseWriter) Write(b []byte) (int, error) {
+	size, err := rw.ResponseWriter.Write(b)
+
+	rw.Size = size
+
+	return size, err
+}
+
 func (rw *ResponseWriter) Written() bool {
 	return rw.Size > 0
 }
