@@ -35,6 +35,7 @@ func (c Context) BindJSONEntity(i interface{}) error {
 
 // EXPERIMENT
 
+// Next calls the next middleware in the chain
 func (c Context) Next() {
 	c.mIndex++
 
@@ -49,19 +50,18 @@ func (c Context) run() {
 
 		if c.mIndex < len(c.middlewares) {
 			c.middlewares[c.mIndex](c)
+
+			c.mIndex++
 		} else if c.mIndex == len(c.middlewares) {
 			result := c.action(c)
 
-			size, err := result.Send(c.ResponseWriter)
+			if result != nil {
+				_, err := result.Send(c.ResponseWriter)
 
-			if err != nil {
-				panic(err)
+				if err != nil {
+					panic(err)
+				}
 			}
-
-			// somehow move this into response.go
-			c.ResponseWriter.Size = size
 		}
-
-		c.middlewares = c.middlewares[1:]
 	}
 }

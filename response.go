@@ -100,7 +100,7 @@ func NewGzipResponse(br BasicResponse) GzipResponse {
 
 // Send creates a gzip writer and writes to the http.ResponseWriter
 func (gr GzipResponse) Send(w io.Writer) (int, error) {
-	gr.setHeaders(w.(*ResponseWriter))
+	gr.BasicResponse.setHeaders(w.(*ResponseWriter))
 
 	gz := gzip.NewWriter(w)
 	defer gz.Close()

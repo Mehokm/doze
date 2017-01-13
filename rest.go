@@ -11,19 +11,28 @@ const (
 
 type ResponseWriter struct {
 	http.ResponseWriter
-	Size int
+	Size       int
+	StatusCode int
 }
 
 func (rw *ResponseWriter) Write(b []byte) (int, error) {
 	size, err := rw.ResponseWriter.Write(b)
 
-	rw.Size = size
+	if err == nil {
+		rw.Size += size
+	}
 
 	return size, err
 }
 
+func (rw *ResponseWriter) WriteHeader(i int) {
+	rw.StatusCode = i
+
+	rw.ResponseWriter.WriteHeader(i)
+}
+
 func (rw *ResponseWriter) Written() bool {
-	return rw.Size > 0
+	return rw.Size > 0 && rw.StatusCode > 0
 }
 
 // ControllerAction is a type for all controller actions
@@ -32,6 +41,7 @@ type ControllerAction func(Context) ResponseSender
 // Interceptor is a type for adding an intercepting the request before it is processed
 type Interceptor func(Context) bool
 
+// Middleware is a type for adding middleware for the request
 type Middleware func(Context)
 
 // Handler implements http.Handler and contains the router and controllers for the REST api
@@ -78,7 +88,7 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	context := Context{
 		Request:        r,
-		ResponseWriter: &ResponseWriter{w, 0},
+		ResponseWriter: &ResponseWriter{w, 0, 0},
 		Route:          route,
 		middlewares:    h.middlewares,
 		action:         action,
@@ -89,8 +99,4 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	context.run()
-
-	// result := action(context)
-	//
-	// result.Send(w)
 }
