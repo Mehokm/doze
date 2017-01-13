@@ -95,8 +95,12 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if ok := h.invokeInterceptors(context); !ok {
+		// maybe check to see if response and header/status has been written
+		// if not, then probably should do something
 		return
 	}
 
 	context.run()
+
+	return
 }
