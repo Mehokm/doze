@@ -26,13 +26,13 @@ func (rw *ResponseWriter) Write(b []byte) (int, error) {
 }
 
 func (rw *ResponseWriter) WriteHeader(i int) {
-	rw.StatusCode = i
-
 	rw.ResponseWriter.WriteHeader(i)
+
+	rw.StatusCode = i
 }
 
 func (rw *ResponseWriter) Written() bool {
-	return rw.Size > 0 && rw.StatusCode > 0
+	return rw.Size > 0
 }
 
 type Request struct {
