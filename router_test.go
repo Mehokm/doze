@@ -16,8 +16,8 @@ func TestNamedRouterMap(t *testing.T) {
 	)
 
 	assert.NotEqual(t, v1.Get("TestRoute"), v2.Get("TestRoute"), "should not be equal")
-	assert.Equal(t, "/v1/people/{id:i}/details/{name:a}", v1.Get("TestRoute").path, "should be equal")
-	assert.Equal(t, "/v2/people/{id:i}/details/{name:a}", v2.Get("TestRoute").path, "should be equal")
+	assert.Equal(t, "/v1/people/{id:i}/details/{name:a}", v1.Get("TestRoute").Path, "should be equal")
+	assert.Equal(t, "/v2/people/{id:i}/details/{name:a}", v2.Get("TestRoute").Path, "should be equal")
 }
 
 func TestRouterGetRouteWithName(t *testing.T) {
@@ -27,7 +27,7 @@ func TestRouterGetRouteWithName(t *testing.T) {
 
 	testRoute := router.Get("TestRoute")
 
-	assert.Equal(t, "/people/{id:i}/details/{name:a}", testRoute.path, "paths should match")
+	assert.Equal(t, "/people/{id:i}/details/{name:a}", testRoute.Path, "Paths should match")
 }
 
 func TestRouterGetRouteWithoutName(t *testing.T) {
@@ -37,7 +37,7 @@ func TestRouterGetRouteWithoutName(t *testing.T) {
 
 	testRoute := router.Get("/people/{id:i}/details/{name:a}")
 
-	assert.Equal(t, "/people/{id:i}/details/{name:a}", testRoute.path, "paths should match")
+	assert.Equal(t, "/people/{id:i}/details/{name:a}", testRoute.Path, "Paths should match")
 }
 
 func TestRouterRouteMatch(t *testing.T) {
@@ -125,5 +125,5 @@ func TestRouterPrefix(t *testing.T) {
 
 	testRoute := router.Get("TestRoute")
 
-	assert.Equal(t, "/api/v3/people/{id:i}/details/{name:a}", testRoute.path, "paths should match")
+	assert.Equal(t, "/api/v3/people/{id:i}/details/{name:a}", testRoute.Path, "Paths should match")
 }

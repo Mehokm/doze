@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"regexp"
 	"strconv"
-	"strings"
 )
 
 const (
@@ -19,72 +18,30 @@ var regMap = map[string]string{
 }
 
 type Route struct {
-	path        string
+	Path        string
 	actions     map[string]Action
-	params      []string
-	paramValues map[string]interface{}
-	regex       *regexp.Regexp
-}
-
-// TODO: move init() and match() logic, as well as regexp, into router in order to
-// be able to use Routable interface.  As currently, logic lies in the Route type
-// instead of the router, therefore you couldnt implement another router with different
-// match logic -- leaving the Routable interface poop
-func (r *Route) init() {
-	toSub := regParam.FindAllStringSubmatch(r.path, -1)
-
-	regString := r.path
-
-	if len(toSub) > 0 {
-		r.params = make([]string, len(toSub))
-
-		for i, v := range toSub {
-			whole, param, pType, regex := v[0], v[1], v[2], `([^/]+)`
-
-			r.params[i] = param
-
-			if len(pType) > 1 {
-				if r, ok := regMap[pType[1:]]; ok {
-					regex = r
-				}
-			}
-			regString = strings.Replace(regString, whole, regex, -1)
-		}
-	}
-	r.regex = regexp.MustCompile(regString + "/?")
-}
-
-func (r *Route) match(test string) bool {
-	matches := r.regex.FindStringSubmatch(test)
-	if matches != nil && matches[0] == test {
-		r.paramValues = make(map[string]interface{})
-
-		for i, m := range matches[1:] {
-			r.paramValues[r.params[i]] = m
-		}
-		return true
-	}
-	return false
+	ParamNames  []string
+	ParamValues []interface{}
 }
 
 func (r *Route) Params() map[string]interface{} {
 	pv := make(map[string]interface{})
 
-	for i, v := range r.paramValues {
-		pv[i] = v
+	for i, v := range r.ParamValues {
+		pv[r.ParamNames[i]] = v
 		if n, err := strconv.Atoi(v.(string)); err == nil {
-			pv[i] = n
+			pv[r.ParamNames[i]] = n
 		}
 	}
 	return pv
 }
 
 func (r *Route) Build(m map[string]interface{}) (string, error) {
-	if len(r.params) != len(m) {
-		return "", fmt.Errorf("wrong number of parameters: %v given, %v required", len(m), len(r.params))
+	if len(r.ParamNames) != len(m) {
+		return "", fmt.Errorf("wrong number of parameters: %v given, %v required", len(m), len(r.ParamNames))
 	}
 
-	s := r.path
+	s := r.Path
 	for p, v := range m {
 		reg := regexp.MustCompile(fmt.Sprintf(`{%v(:\w+)?}`, p))
 
