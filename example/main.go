@@ -73,6 +73,7 @@ func main() {
 
 	h.Use(func(c rest.Context) {
 		fmt.Println("before1")
+		c.Request.Data.Set("hi", "bye")
 
 		c.Next()
 
@@ -81,6 +82,7 @@ func main() {
 
 	h.Use(func(c rest.Context) {
 		fmt.Println("before2")
+		fmt.Println(c.Request.Data.Get("hi"))
 
 		c.Next()
 

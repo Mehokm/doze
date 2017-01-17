@@ -2,17 +2,16 @@ package rest
 
 import (
 	"encoding/json"
-	"net/http"
 	"net/url"
 )
 
 type Context struct {
-	Request        *http.Request
+	Request        Request
 	ResponseWriter *ResponseWriter
 	Route          *Route
 	middlewares    []Middleware
 	mIndex         int
-	action         ControllerAction
+	action         Action
 }
 
 // FormData returns data related to the request from GET, POST, or PUT

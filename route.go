@@ -20,7 +20,7 @@ var regMap = map[string]string{
 
 type Route struct {
 	path        string
-	actions     map[string]ControllerAction
+	actions     map[string]Action
 	params      []string
 	paramValues map[string]interface{}
 	regex       *regexp.Regexp

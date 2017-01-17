@@ -35,8 +35,29 @@ func (rw *ResponseWriter) Written() bool {
 	return rw.Size > 0 && rw.StatusCode > 0
 }
 
-// ControllerAction is a type for all controller actions
-type ControllerAction func(Context) ResponseSender
+type Request struct {
+	*http.Request
+	Data requestData
+}
+
+type requestData struct {
+	data map[interface{}]interface{}
+}
+
+func (rd requestData) Set(key, value interface{}) {
+	rd.data[key] = value
+}
+
+func (rd requestData) Get(key interface{}) interface{} {
+	if value, ok := rd.data[key]; ok {
+		return value
+	}
+
+	return nil
+}
+
+// Action is a type for all controller actions
+type Action func(Context) ResponseSender
 
 // Interceptor is a type for adding an intercepting the request before it is processed
 type Interceptor func(Context) bool
@@ -87,7 +108,7 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	context := Context{
-		Request:        r,
+		Request:        Request{r, requestData{make(map[interface{}]interface{})}},
 		ResponseWriter: &ResponseWriter{w, 0, 0},
 		Route:          route,
 		middlewares:    h.middlewares,

@@ -12,7 +12,7 @@ type router struct {
 
 type routeBuilder struct {
 	path      string
-	actions   map[string]ControllerAction
+	actions   map[string]Action
 	routeName string
 }
 
@@ -42,7 +42,7 @@ func (r router) Prefix(prefix string) router {
 }
 
 func NewRoute() *routeBuilder {
-	return &routeBuilder{actions: make(map[string]ControllerAction)}
+	return &routeBuilder{actions: make(map[string]Action)}
 }
 
 func (rb *routeBuilder) Named(name string) *routeBuilder {
@@ -55,12 +55,12 @@ func (rb *routeBuilder) For(path string) *routeBuilder {
 	return rb
 }
 
-func (rb *routeBuilder) With(method string, action ControllerAction) *routeBuilder {
+func (rb *routeBuilder) With(method string, action Action) *routeBuilder {
 	rb.actions[method] = action
 	return rb
 }
 
-func (rb *routeBuilder) And(method string, action ControllerAction) *routeBuilder {
+func (rb *routeBuilder) And(method string, action Action) *routeBuilder {
 	return rb.With(method, action)
 }
 
