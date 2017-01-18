@@ -38,7 +38,7 @@ func (uc UserController) GetUser(c rest.Context) rest.ResponseSender {
 
 // GetAllUsers action maps to route /users (GET)
 func (uc UserController) GetAllUsers(c rest.Context) rest.ResponseSender {
-	return rest.NewGzipResponse(rest.NewOKJSONResponse(users))
+	return rest.NewOKJSONResponse(users)
 }
 
 // CreateUser action maps to route /users (POST)
@@ -79,5 +79,5 @@ func main() {
 
 	http.Handle(root+"/", h)
 
-	log.Fatal(http.ListenAndServe(":10100", nil))
+	log.Fatal(http.ListenAndServe(":8080", nil))
 }
