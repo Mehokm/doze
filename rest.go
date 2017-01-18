@@ -9,53 +9,6 @@ const (
 	MethodDELETE = "DELETE"
 )
 
-type ResponseWriter struct {
-	http.ResponseWriter
-	Size       int
-	StatusCode int
-}
-
-func (rw *ResponseWriter) Write(b []byte) (int, error) {
-	size, err := rw.ResponseWriter.Write(b)
-
-	if err == nil {
-		rw.Size += size
-	}
-
-	return size, err
-}
-
-func (rw *ResponseWriter) WriteHeader(i int) {
-	rw.ResponseWriter.WriteHeader(i)
-
-	rw.StatusCode = i
-}
-
-func (rw *ResponseWriter) Written() bool {
-	return rw.Size > 0
-}
-
-type Request struct {
-	*http.Request
-	Data requestData
-}
-
-type requestData struct {
-	data map[interface{}]interface{}
-}
-
-func (rd requestData) Set(key, value interface{}) {
-	rd.data[key] = value
-}
-
-func (rd requestData) Get(key interface{}) interface{} {
-	if value, ok := rd.data[key]; ok {
-		return value
-	}
-
-	return nil
-}
-
 // Action is a type for all controller actions
 type Action func(Context) ResponseSender
 
@@ -67,13 +20,13 @@ type Middleware func(Context)
 
 // Handler implements http.Handler and contains the router and controllers for the REST api
 type handler struct {
-	router       Routable
+	router       Routeable
 	interceptors []Interceptor
 	middlewares  []Middleware
 }
 
 // NewHandler returns a new Handler with router initialized
-func NewHandler(r Routable) *handler {
+func NewHandler(r Routeable) *handler {
 	return &handler{r, make([]Interceptor, 0), make([]Middleware, 0)}
 }
 
@@ -101,7 +54,7 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	action, actionExists := route.actions[r.Method]
+	action, actionExists := route.Actions[r.Method]
 	if !actionExists {
 		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
 		return

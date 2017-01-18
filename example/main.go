@@ -33,6 +33,7 @@ type UserController struct {
 
 // GetUser action maps to route /users/{id:i}
 func (uc UserController) GetUser(c rest.Context) rest.ResponseSender {
+	fmt.Println(c.Route.Params())
 	return rest.NewOKJSONResponse(User{"John", "Smith"})
 }
 
