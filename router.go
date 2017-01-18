@@ -5,11 +5,19 @@ import (
 	"strings"
 )
 
-type Routable interface {
+// Routeable is an interface which allows you to create your own router
+// * Get(string) *Route returns the route by route name
+// * Match(string) *Route takes a URI and returns a *Route it matches.  If it does not
+//   it returns nil
+// * SetParamNames sets the route parameter names to a route.  Ex. /api/foo/{id}, id is a param
+// * SetParamValues sets the value to match the route parameter.  Ex. /api/foo/i, id is the param, and 1 is the value
+// * SetActions set the actions for that given route.  The map key is the method.  Ex. map["GET"]Action
+type Routeable interface {
 	Get(string) *Route
 	Match(string) *Route
 	SetParamNames(*Route, []string)
 	SetParamValues(*Route, []interface{})
+	SetActions(*Route, map[string]Action)
 }
 
 type router struct {
@@ -31,22 +39,25 @@ func init() {
 	routers["default"] = router{"", make(map[string]*Route), make(map[*Route]*regexp.Regexp)}
 }
 
+// NewRouter creates and returns a ready to use router based on a name
 func NewRouter(name string) router {
 	routers[name] = router{"", make(map[string]*Route), make(map[*Route]*regexp.Regexp)}
 	return routers[name]
 }
 
+// DefaultRouter returns the router with name "default"
 func DefaultRouter() router {
 	return routers["default"]
 }
 
+// Router returns a router specified by a name
 func Router(name string) router {
 	return routers[name]
 }
 
-func (r router) Prefix(prefix string) router {
-	r.prefix = prefix
-	return r
+func (ro router) Prefix(prefix string) router {
+	ro.prefix = prefix
+	return ro
 }
 
 func NewRoute() *routeBuilder {
@@ -76,7 +87,7 @@ func (ro router) RouteMap(rbs ...*routeBuilder) router {
 	for _, routeBuilder := range rbs {
 		route := &Route{
 			Path:    ro.prefix + routeBuilder.path,
-			actions: routeBuilder.actions,
+			Actions: routeBuilder.actions,
 		}
 
 		ro.initRoute(route)

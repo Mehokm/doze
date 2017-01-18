@@ -7,23 +7,26 @@ import (
 )
 
 const (
-	IntParam      = "i"
-	AlphaNumParam = "an"
+	intParam      = "i"
+	alphaNumParam = "an"
 )
 
 var regParam = regexp.MustCompile(`{(\w+)(:\w+)?}`)
 var regMap = map[string]string{
-	IntParam:      `([0-9]+)`,
-	AlphaNumParam: `([0-9A-Za-z]+)`,
+	intParam:      `([0-9]+)`,
+	alphaNumParam: `([0-9A-Za-z]+)`,
 }
 
 type Route struct {
 	Path        string
-	actions     map[string]Action
+	Actions     map[string]Action
 	ParamNames  []string
 	ParamValues []interface{}
 }
 
+// Params returns a key-value pair containing the route parameters defined in the
+// route path.  ParamNames should alwyas go 1-1 to the ParamValues, otherwise you
+// will have a bad time
 func (r *Route) Params() map[string]interface{} {
 	pv := make(map[string]interface{})
 
@@ -36,6 +39,8 @@ func (r *Route) Params() map[string]interface{} {
 	return pv
 }
 
+// Build returns the route path with route parameters replaced with values from the
+// passed in map
 func (r *Route) Build(m map[string]interface{}) (string, error) {
 	if len(r.ParamNames) != len(m) {
 		return "", fmt.Errorf("wrong number of parameters: %v given, %v required", len(m), len(r.ParamNames))
