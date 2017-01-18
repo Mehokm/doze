@@ -5,6 +5,19 @@ import (
 	"strings"
 )
 
+const (
+	intParam      = "i"
+	alphaParam    = "a"
+	alphaNumParam = "an"
+)
+
+var regParam = regexp.MustCompile(`{(\w+)(:\w+)?}`)
+var regMap = map[string]string{
+	intParam:      `([0-9]+)`,
+	alphaParam:    `([A-Za-z]+)`,
+	alphaNumParam: `([0-9A-Za-z]+)`,
+}
+
 // Routeable is an interface which allows you to create your own router
 // * Get(string) *Route returns the route by route name
 // * Match(string) *Route takes a URI and returns a *Route it matches.  If it does not
@@ -155,4 +168,8 @@ func (ro router) SetParamNames(r *Route, pn []string) {
 
 func (ro router) SetParamValues(r *Route, pv []interface{}) {
 	r.ParamValues = pv
+}
+
+func (ro router) SetActions(r *Route, a map[string]Action) {
+	r.Actions = a
 }

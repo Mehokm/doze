@@ -33,14 +33,11 @@ type UserController struct {
 
 // GetUser action maps to route /users/{id:i}
 func (uc UserController) GetUser(c rest.Context) rest.ResponseSender {
-	fmt.Println(c.Route.Params())
 	return rest.NewOKJSONResponse(User{"John", "Smith"})
 }
 
 // GetAllUsers action maps to route /users (GET)
 func (uc UserController) GetAllUsers(c rest.Context) rest.ResponseSender {
-	fmt.Println("in controller")
-
 	return rest.NewGzipResponse(rest.NewOKJSONResponse(users))
 }
 
@@ -63,32 +60,21 @@ func main() {
 	userController := UserController{stubDB{}}
 
 	router := rest.DefaultRouter().Prefix(root).RouteMap(
+		rest.NewRoute().For("/users/{id:i}").
+			With(rest.MethodGET, userController.GetUser),
 		rest.NewRoute().For("/users").
 			With(rest.MethodGET, userController.GetAllUsers).
 			And(rest.MethodPOST, userController.CreateUser),
-		rest.NewRoute().For("/users/{id:i}").
-			With(rest.MethodGET, userController.GetUser),
 	)
 
 	h := rest.NewHandler(router)
 
 	h.Use(func(c rest.Context) {
-		fmt.Println("before1")
-		c.Request.Data.Set("hi", "bye")
-
 		c.Next()
-
-		fmt.Println("after1")
 	})
 
 	h.Use(func(c rest.Context) {
-		fmt.Println("before2")
-		fmt.Println(c.Request.Data.Get("hi"))
-
 		c.Next()
-
-		fmt.Printf("Response length: %v", c.ResponseWriter.Size)
-		fmt.Println()
 	})
 
 	http.Handle(root+"/", h)

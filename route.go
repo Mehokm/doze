@@ -6,17 +6,6 @@ import (
 	"strconv"
 )
 
-const (
-	intParam      = "i"
-	alphaNumParam = "an"
-)
-
-var regParam = regexp.MustCompile(`{(\w+)(:\w+)?}`)
-var regMap = map[string]string{
-	intParam:      `([0-9]+)`,
-	alphaNumParam: `([0-9A-Za-z]+)`,
-}
-
 type Route struct {
 	Path        string
 	Actions     map[string]Action

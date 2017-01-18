@@ -32,8 +32,6 @@ func (c Context) BindJSONEntity(i interface{}) error {
 	return json.NewDecoder(c.Request.Body).Decode(&i)
 }
 
-// EXPERIMENT
-
 // Next calls the next middleware in the chain
 func (c Context) Next() {
 	c.mIndex++

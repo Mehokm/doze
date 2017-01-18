@@ -61,6 +61,10 @@ func TestRouterRouteMatch(t *testing.T) {
 	route4 := router.Match("/people/job")
 
 	assert.NotNil(t, route4, "route4 should not be nil")
+
+	route5 := router.Match("/people/10/details/10")
+
+	assert.Nil(t, route5, "route5 should be nil")
 }
 
 func TestRouteParams(t *testing.T) {
