@@ -9,25 +9,33 @@ const (
 	MethodDELETE = "DELETE"
 )
 
-// ControllerAction is a type for all controller actions
-type ControllerAction func(Context) ResponseSender
+// Action is a type for all controller actions
+type Action func(Context) ResponseSender
 
 // Interceptor is a type for adding an intercepting the request before it is processed
 type Interceptor func(Context) bool
 
+// Middleware is a type for adding middleware for the request
+type Middleware func(Context)
+
 // Handler implements http.Handler and contains the router and controllers for the REST api
 type handler struct {
-	router       Routable
+	router       Routeable
 	interceptors []Interceptor
+	middlewares  []Middleware
 }
 
 // NewHandler returns a new Handler with router initialized
-func NewHandler(r Routable) *handler {
-	return &handler{r, make([]Interceptor, 0)}
+func NewHandler(r Routeable) *handler {
+	return &handler{r, make([]Interceptor, 0), make([]Middleware, 0)}
 }
 
-func (h *handler) AddInterceptor(i Interceptor) {
+func (h *handler) Intercept(i Interceptor) {
 	h.interceptors = append(h.interceptors, i)
+}
+
+func (h *handler) Use(m Middleware) {
+	h.middlewares = append(h.middlewares, m)
 }
 
 func (h *handler) invokeInterceptors(c Context) bool {
@@ -46,23 +54,27 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	context := Context{
-		Request:        r,
-		ResponseWriter: w,
-		Route:          route,
-	}
-
-	if ok := h.invokeInterceptors(context); !ok {
-		return
-	}
-
-	action, actionExists := route.actions[r.Method]
+	action, actionExists := route.Actions[r.Method]
 	if !actionExists {
 		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
 		return
 	}
 
-	result := action(context)
+	context := Context{
+		Request:        Request{r, requestData{make(map[interface{}]interface{})}},
+		ResponseWriter: &ResponseWriter{w, 0, 0},
+		Route:          route,
+		middlewares:    h.middlewares,
+		action:         action,
+	}
 
-	result.Send(w)
+	if ok := h.invokeInterceptors(context); !ok {
+		// maybe check to see if response and header/status has been written
+		// if not, then probably should do something
+		return
+	}
+
+	context.run()
+
+	return
 }

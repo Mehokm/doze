@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"go-tfts"
+	"log"
 	"net/http"
 )
 
@@ -19,15 +20,15 @@ var users = []User{
 }
 
 // This is a stub db struct
-type StubDB struct{}
+type stubDB struct{}
 
-func (s StubDB) execute(query string) {
+func (s stubDB) execute(query string) {
 	fmt.Println("I executed: " + query)
 }
 
 // UserController is a basic struct to encapsulate all user actions
 type UserController struct {
-	db StubDB
+	db stubDB
 }
 
 // GetUser action maps to route /users/{id:i}
@@ -37,7 +38,7 @@ func (uc UserController) GetUser(c rest.Context) rest.ResponseSender {
 
 // GetAllUsers action maps to route /users (GET)
 func (uc UserController) GetAllUsers(c rest.Context) rest.ResponseSender {
-	return rest.NewGzipResponse(rest.NewOKJSONResponse(users))
+	return rest.NewOKJSONResponse(users)
 }
 
 // CreateUser action maps to route /users (POST)
@@ -56,18 +57,27 @@ func (uc UserController) CreateUser(c rest.Context) rest.ResponseSender {
 func main() {
 	root := "/api/v1"
 
-	userController := UserController{StubDB{}}
+	userController := UserController{stubDB{}}
 
 	router := rest.DefaultRouter().Prefix(root).RouteMap(
+		rest.NewRoute().For("/users/{id:i}").
+			With(rest.MethodGET, userController.GetUser),
 		rest.NewRoute().For("/users").
 			With(rest.MethodGET, userController.GetAllUsers).
 			And(rest.MethodPOST, userController.CreateUser),
-		rest.NewRoute().For("/users/{id:i}").
-			With(rest.MethodGET, userController.GetUser),
 	)
 
 	h := rest.NewHandler(router)
 
+	h.Use(func(c rest.Context) {
+		c.Next()
+	})
+
+	h.Use(func(c rest.Context) {
+		c.Next()
+	})
+
 	http.Handle(root+"/", h)
-	http.ListenAndServe(":8080", nil)
+
+	log.Fatal(http.ListenAndServe(":8080", nil))
 }
