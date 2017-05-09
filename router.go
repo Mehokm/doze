@@ -65,6 +65,11 @@ func DefaultRouter() router {
 
 // Router returns a router specified by a name
 func Router(name string) router {
+	// create new router if it doesn't exist
+	if _, ok := routers[name]; !ok {
+		routers[name] = router{"", make(map[string]*Route), make(map[*Route]*regexp.Regexp)}
+	}
+
 	return routers[name]
 }
 
