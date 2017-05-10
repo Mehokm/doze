@@ -40,24 +40,22 @@ func (c Context) Next() {
 }
 
 func (c Context) run() {
-	for {
-		if c.ResponseWriter.Written() {
-			return
-		}
+	if c.ResponseWriter.Written() {
+		return
+	}
 
-		if c.mIndex < len(c.middlewares) {
-			c.middlewares[c.mIndex](c)
+	if c.mIndex < len(c.middlewares) {
+		c.middlewares[c.mIndex](c)
 
-			c.mIndex++
-		} else if c.mIndex == len(c.middlewares) {
-			result := c.action(c)
+		c.mIndex++
+	} else if c.mIndex == len(c.middlewares) {
+		result := c.action(c)
 
-			if result != nil {
-				_, err := result.Send(c.ResponseWriter)
+		if result != nil {
+			_, err := result.Send(c.ResponseWriter)
 
-				if err != nil {
-					panic(err)
-				}
+			if err != nil {
+				panic(err)
 			}
 		}
 	}
