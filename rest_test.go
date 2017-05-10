@@ -48,9 +48,9 @@ func setup() {
 	mux = http.NewServeMux()
 	server = httptest.NewServer(mux)
 	r = DefaultRouter().RouteMap(
-		NewRoute().Named("simpleGet").For(RestRoot+"/simpleget").With(MethodGET, TestController{}.SimpleGet),
-		NewRoute().Named("simplePost").For(RestRoot+"/simplepost").With(MethodPOST, TestController{}.SimplePost),
-		NewRoute().Named("simplePut").For(RestRoot+"/simpleput").With(MethodPUT, TestController{}.SimplePut),
+		NewRoute().Name("simpleGet").For(RestRoot+"/simpleget").With(MethodGET, TestController{}.SimpleGet),
+		NewRoute().Name("simplePost").For(RestRoot+"/simplepost").With(MethodPOST, TestController{}.SimplePost),
+		NewRoute().Name("simplePut").For(RestRoot+"/simpleput").With(MethodPUT, TestController{}.SimplePut),
 	)
 }
 

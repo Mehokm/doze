@@ -3,6 +3,7 @@ package rest
 import (
 	"regexp"
 	"strings"
+	"sync"
 )
 
 const (
@@ -18,21 +19,6 @@ var regMap = map[string]string{
 	alphaNumParam: `([0-9A-Za-z]+)`,
 }
 
-// Routeable is an interface which allows you to create your own router
-// * Get(string) *Route returns the route by route name
-// * Match(string) *Route takes a URI and returns a *Route it matches.  If it does not
-//   it returns nil
-// * SetParamNames sets the route parameter names to a route.  Ex. /api/foo/{id}, id is a param
-// * SetParamValues sets the value to match the route parameter.  Ex. /api/foo/i, id is the param, and 1 is the value
-// * SetActions set the actions for that given route.  The map key is the method.  Ex. map["GET"]Action
-type Routeable interface {
-	Get(string) *Route
-	Match(string) *Route
-	SetParamNames(*Route, []string)
-	SetParamValues(*Route, []interface{})
-	SetActions(*Route, map[string]Action)
-}
-
 type router struct {
 	prefix     string
 	Routes     map[string]*Route
@@ -45,26 +31,29 @@ type routeBuilder struct {
 	routeName string
 }
 
-var routers map[string]router
+var (
+	routers map[string]router
+	lock    sync.RWMutex
+)
 
 func init() {
 	routers = make(map[string]router)
 	routers["default"] = router{"", make(map[string]*Route), make(map[*Route]*regexp.Regexp)}
 }
 
-// NewRouter creates and returns a ready to use router based on a name
-func NewRouter(name string) router {
-	routers[name] = router{"", make(map[string]*Route), make(map[*Route]*regexp.Regexp)}
-	return routers[name]
-}
-
 // DefaultRouter returns the router with name "default"
 func DefaultRouter() router {
+	lock.Lock()
+	defer lock.Unlock()
+
 	return routers["default"]
 }
 
 // Router returns a router specified by a name
 func Router(name string) router {
+	lock.Lock()
+	defer lock.Unlock()
+
 	// create new router if it doesn't exist
 	if _, ok := routers[name]; !ok {
 		routers[name] = router{"", make(map[string]*Route), make(map[*Route]*regexp.Regexp)}
@@ -75,25 +64,30 @@ func Router(name string) router {
 
 func (ro router) Prefix(prefix string) router {
 	ro.prefix = prefix
+
 	return ro
 }
 
+// NewRoute returns a wrapper to make a builder for Route
 func NewRoute() *routeBuilder {
 	return &routeBuilder{actions: make(map[string]Action)}
 }
 
-func (rb *routeBuilder) Named(name string) *routeBuilder {
+func (rb *routeBuilder) Name(name string) *routeBuilder {
 	rb.routeName = name
+
 	return rb
 }
 
 func (rb *routeBuilder) For(path string) *routeBuilder {
 	rb.path = path
+
 	return rb
 }
 
 func (rb *routeBuilder) With(method string, action Action) *routeBuilder {
 	rb.actions[method] = action
+
 	return rb
 }
 

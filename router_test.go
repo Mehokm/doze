@@ -6,13 +6,13 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNamedRouterMap(t *testing.T) {
+func TestNameRouterMap(t *testing.T) {
 	v1 := DefaultRouter().RouteMap(
-		NewRoute().Named("TestRoute").For("/v1/people/{id:i}/details/{name:a}").With("GET", TestController{}.SimpleGet),
+		NewRoute().Name("TestRoute").For("/v1/people/{id:i}/details/{name:a}").With("GET", TestController{}.SimpleGet),
 	)
 
-	v2 := NewRouter("v2").RouteMap(
-		NewRoute().Named("TestRoute").For("/v2/people/{id:i}/details/{name:a}").With("GET", TestController{}.SimpleGet),
+	v2 := Router("v2").RouteMap(
+		NewRoute().Name("TestRoute").For("/v2/people/{id:i}/details/{name:a}").With("GET", TestController{}.SimpleGet),
 	)
 
 	assert.NotEqual(t, v1.Get("TestRoute"), v2.Get("TestRoute"), "should not be equal")
@@ -22,7 +22,7 @@ func TestNamedRouterMap(t *testing.T) {
 
 func TestRouterGetRouteWithName(t *testing.T) {
 	router := DefaultRouter().RouteMap(
-		NewRoute().Named("TestRoute").For("/people/{id:i}/details/{name:a}").With("GET", TestController{}.SimpleGet),
+		NewRoute().Name("TestRoute").For("/people/{id:i}/details/{name:a}").With("GET", TestController{}.SimpleGet),
 	)
 
 	testRoute := router.Get("TestRoute")
@@ -81,7 +81,7 @@ func TestRouteParams(t *testing.T) {
 
 func TestRouteBuildShouldError(t *testing.T) {
 	router := DefaultRouter().RouteMap(
-		NewRoute().Named("test").For("/people/{id:i}/details/{name}").With("GET", TestController{}.SimpleGet),
+		NewRoute().Name("test").For("/people/{id:i}/details/{name}").With("GET", TestController{}.SimpleGet),
 	)
 
 	m1 := map[string]interface{}{
@@ -108,7 +108,7 @@ func TestRouteBuildShouldError(t *testing.T) {
 
 func TestRouteBuild(t *testing.T) {
 	router := DefaultRouter().RouteMap(
-		NewRoute().Named("test").For("/people/{id:i}/details/{name}").With("GET", TestController{}.SimpleGet),
+		NewRoute().Name("test").For("/people/{id:i}/details/{name}").With("GET", TestController{}.SimpleGet),
 	)
 
 	m := map[string]interface{}{
@@ -124,7 +124,7 @@ func TestRouteBuild(t *testing.T) {
 
 func TestRouterPrefix(t *testing.T) {
 	router := DefaultRouter().Prefix("/api/v3").RouteMap(
-		NewRoute().Named("TestRoute").For("/people/{id:i}/details/{name:a}").With("GET", TestController{}.SimpleGet),
+		NewRoute().Name("TestRoute").For("/people/{id:i}/details/{name:a}").With("GET", TestController{}.SimpleGet),
 	)
 
 	testRoute := router.Get("TestRoute")
