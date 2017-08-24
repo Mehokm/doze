@@ -6,19 +6,6 @@ import (
 	"sync"
 )
 
-const (
-	intParam      = "i"
-	alphaParam    = "a"
-	alphaNumParam = "an"
-)
-
-var regParam = regexp.MustCompile(`{(\w+)(:\w+)?}`)
-var regMap = map[string]string{
-	intParam:      `([0-9]+)`,
-	alphaParam:    `([A-Za-z]+)`,
-	alphaNumParam: `([0-9A-Za-z]+)`,
-}
-
 type router struct {
 	prefix     string
 	Routes     map[string]*Route
@@ -97,12 +84,26 @@ func (rb *routeBuilder) And(method string, action Action) *routeBuilder {
 
 func (ro router) RouteMap(rbs ...*routeBuilder) router {
 	for _, routeBuilder := range rbs {
-		route := &Route{
-			Path:    ro.prefix + routeBuilder.path,
-			Actions: routeBuilder.actions,
+		var paramNames []string
+
+		parts := strings.Split(ro.prefix+routeBuilder.path, "/")
+		for i := 0; i < len(parts); i++ {
+			if len(parts[i]) > 0 && string(parts[i][0]) == "{" && string(parts[i][len(parts[i])-1]) == "}" {
+				paramName := parts[i][1 : len(parts[i])-1]
+
+				if index := strings.Index(parts[i], ":"); index >= 0 {
+					paramName = parts[i][1:index]
+				}
+
+				paramNames = append(paramNames, paramName)
+			}
 		}
 
-		ro.initRoute(route)
+		route := &Route{
+			Path:       ro.prefix + routeBuilder.path,
+			Actions:    routeBuilder.actions,
+			ParamNames: paramNames,
+		}
 
 		if routeBuilder.routeName == "" {
 			ro.Routes[routeBuilder.path] = route
@@ -113,45 +114,24 @@ func (ro router) RouteMap(rbs ...*routeBuilder) router {
 	return ro
 }
 
-func (ro router) initRoute(route *Route) {
-	toSub := regParam.FindAllStringSubmatch(route.Path, -1)
-
-	regString := route.Path
-
-	if len(toSub) > 0 {
-		params := make([]string, len(toSub))
-
-		for i, v := range toSub {
-			whole, param, pType, regex := v[0], v[1], v[2], `([^/]+)`
-
-			params[i] = param
-
-			if len(pType) > 1 {
-				if r, ok := regMap[pType[1:]]; ok {
-					regex = r
-				}
-			}
-			regString = strings.Replace(regString, whole, regex, -1)
-		}
-		ro.SetParamNames(route, params)
-	}
-
-	ro.routingMap[route] = regexp.MustCompile(regString + "/?")
-}
-
 func (ro router) Get(name string) *Route {
 	return ro.Routes[name]
 }
 
 func (ro router) Match(test string) *Route {
-	for route, regex := range ro.routingMap {
-		matches := regex.FindStringSubmatch(test)
-		if matches != nil && matches[0] == test {
-			values := make([]interface{}, len(matches[1:]))
+	for _, route := range ro.Routes {
+		u1 := NewRouteUri(route.Path)
+		u2 := NewTestUri(test)
 
-			for i, m := range matches[1:] {
-				values[i] = m
+		um := UriMatcher{u1, u2}
+
+		if um.match() {
+			var values []interface{}
+
+			for _, v := range um.test.params {
+				values = append(values, v.value)
 			}
+
 			ro.SetParamValues(route, values)
 
 			return route
@@ -159,6 +139,10 @@ func (ro router) Match(test string) *Route {
 	}
 
 	return nil
+}
+
+func (ro router) sortRoutes() {
+
 }
 
 func (ro router) SetParamNames(r *Route, pn []string) {
