@@ -131,3 +131,20 @@ func TestRouterPrefix(t *testing.T) {
 
 	assert.Equal(t, "/api/v3/people/{id:i}/details/{name:a}", testRoute.Path, "Paths should match")
 }
+
+/// BENCHMARKS
+
+func BenchmarkRouterMatch(b *testing.B) {
+	n := 10000
+	var routes []*routeBuilder
+
+	for i := 0; i < n; i++ {
+		routes = append(routes, NewRoute().Name("TestRoute").For("/people/{id:i}/details/{name:a}").With("GET", TestController{}.SimpleGet))
+	}
+
+	rr := DefaultRouter().RouteMap(routes...)
+
+	for n := 0; n < b.N; n++ {
+		rr.Match("test")
+	}
+}
