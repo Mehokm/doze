@@ -2,13 +2,6 @@ package rest
 
 import "net/http"
 
-const (
-	MethodGET    = "GET"
-	MethodPOST   = "POST"
-	MethodPUT    = "PUT"
-	MethodDELETE = "DELETE"
-)
-
 // Routeable is an interface which allows you to create your own router
 // * Get(string) *Route returns the route by route name
 // * Match(string) *Route takes a URI and returns a *Route it matches.  If it does not
