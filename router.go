@@ -1,7 +1,6 @@
 package rest
 
 import (
-	"regexp"
 	"strings"
 	"sync"
 )
@@ -9,7 +8,7 @@ import (
 type router struct {
 	prefix     string
 	Routes     map[string]*Route
-	routingMap map[*Route]*regexp.Regexp
+	routingMap map[int][]*Route
 }
 
 type routeBuilder struct {
@@ -25,7 +24,7 @@ var (
 
 func init() {
 	routers = make(map[string]router)
-	routers["default"] = router{"", make(map[string]*Route), make(map[*Route]*regexp.Regexp)}
+	routers["default"] = router{"", make(map[string]*Route), make(map[int][]*Route)}
 }
 
 // DefaultRouter returns the router with name "default"
@@ -43,7 +42,7 @@ func Router(name string) router {
 
 	// create new router if it doesn't exist
 	if _, ok := routers[name]; !ok {
-		routers[name] = router{"", make(map[string]*Route), make(map[*Route]*regexp.Regexp)}
+		routers[name] = router{"", make(map[string]*Route), make(map[int][]*Route)}
 	}
 
 	return routers[name]
@@ -87,17 +86,10 @@ func (ro router) RouteMap(rbs ...*routeBuilder) router {
 		var paramNames []string
 
 		parts := strings.Split(ro.prefix+routeBuilder.path, "/")
-		for i := 0; i < len(parts); i++ {
-			if len(parts[i]) > 0 && string(parts[i][0]) == "{" && string(parts[i][len(parts[i])-1]) == "}" {
-				paramName := parts[i][1 : len(parts[i])-1]
 
-				if index := strings.Index(parts[i], ":"); index >= 0 {
-					paramName = parts[i][1:index]
-				}
-
-				paramNames = append(paramNames, paramName)
-			}
-		}
+		routePatternMapperFunc(parts, func(i int, param, pType string) {
+			paramNames = append(paramNames, param)
+		})
 
 		route := &Route{
 			Path:       ro.prefix + routeBuilder.path,
@@ -109,6 +101,8 @@ func (ro router) RouteMap(rbs ...*routeBuilder) router {
 			ro.Routes[routeBuilder.path] = route
 		}
 		ro.Routes[routeBuilder.routeName] = route
+
+		ro.routingMap[len(parts)] = append(ro.routingMap[len(parts)], route)
 	}
 
 	return ro
@@ -119,11 +113,15 @@ func (ro router) Get(name string) *Route {
 }
 
 func (ro router) Match(test string) *Route {
-	for _, route := range ro.Routes {
-		u1 := NewRouteUri(route.Path)
-		u2 := NewTestUri(test)
+	testParts := strings.Split(test, "/")
 
-		um := UriMatcher{u1, u2}
+	routes := ro.routingMap[len(testParts)]
+
+	for _, route := range routes {
+		u1 := newRouteUri(route.Path)
+		u2 := newTestUri(test)
+
+		um := uriMatcher{u1, u2}
 
 		if um.match() {
 			var values []interface{}
@@ -139,10 +137,6 @@ func (ro router) Match(test string) *Route {
 	}
 
 	return nil
-}
-
-func (ro router) sortRoutes() {
-
 }
 
 func (ro router) SetParamNames(r *Route, pn []string) {

@@ -1,7 +1,9 @@
 package rest
 
 import (
+	"math/rand"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -21,58 +23,58 @@ func TestNameRouterMap(t *testing.T) {
 }
 
 func TestRouterGetRouteWithName(t *testing.T) {
-	router := DefaultRouter().RouteMap(
+	r := DefaultRouter().RouteMap(
 		NewRoute().Name("TestRoute").For("/people/{id:i}/details/{name:a}").With("GET", TestController{}.SimpleGet),
 	)
 
-	testRoute := router.Get("TestRoute")
+	testRoute := r.Get("TestRoute")
 
 	assert.Equal(t, "/people/{id:i}/details/{name:a}", testRoute.Path, "Paths should match")
 }
 
 func TestRouterGetRouteWithoutName(t *testing.T) {
-	router := DefaultRouter().RouteMap(
+	r := DefaultRouter().RouteMap(
 		NewRoute().For("/people/{id:i}/details/{name:a}").With("GET", TestController{}.SimpleGet),
 	)
 
-	testRoute := router.Get("/people/{id:i}/details/{name:a}")
+	testRoute := r.Get("/people/{id:i}/details/{name:a}")
 
 	assert.Equal(t, "/people/{id:i}/details/{name:a}", testRoute.Path, "Paths should match")
 }
 
 func TestRouterRouteMatch(t *testing.T) {
-	router := DefaultRouter().RouteMap(
+	r := DefaultRouter().RouteMap(
 		NewRoute().For("/people/{id:i}/details/{name:a}").With("GET", TestController{}.SimpleGet),
 		NewRoute().For("/people/{id}").With("GET", TestController{}.SimpleGet),
 	)
 
-	route1 := router.Match("/people/10/details/job")
+	route1 := r.Match("/people/10/details/job")
 
 	assert.NotNil(t, route1, "route1 should not be nil")
 
-	route2 := router.Match("/people/job/details/10")
+	route2 := r.Match("/people/job/details/10")
 
 	assert.Nil(t, route2, "route2 should be nil")
 
-	route3 := router.Match("/people/10")
+	route3 := r.Match("/people/10")
 
 	assert.NotNil(t, route3, "route3 should not be nil")
 
-	route4 := router.Match("/people/job")
+	route4 := r.Match("/people/job")
 
 	assert.NotNil(t, route4, "route4 should not be nil")
 
-	route5 := router.Match("/people/10/details/10")
+	route5 := r.Match("/people/10/details/10")
 
 	assert.Nil(t, route5, "route5 should be nil")
 }
 
 func TestRouteParams(t *testing.T) {
-	router := DefaultRouter().RouteMap(
+	r := DefaultRouter().RouteMap(
 		NewRoute().For("/people/{id:i}/details/{name:a}").With("GET", TestController{}.SimpleGet),
 	)
 
-	route := router.Match("/people/10/details/job")
+	route := r.Match("/people/10/details/job")
 
 	assert.Len(t, route.Params(), 2, "length should be 2")
 	assert.Equal(t, 10, route.Params()["id"], "they should match")
@@ -80,7 +82,7 @@ func TestRouteParams(t *testing.T) {
 }
 
 func TestRouteBuildShouldError(t *testing.T) {
-	router := DefaultRouter().RouteMap(
+	r := DefaultRouter().RouteMap(
 		NewRoute().Name("test").For("/people/{id:i}/details/{name}").With("GET", TestController{}.SimpleGet),
 	)
 
@@ -90,7 +92,7 @@ func TestRouteBuildShouldError(t *testing.T) {
 		"name": "Joe",
 	}
 
-	s1, err1 := router.Get("test").Build(m1)
+	s1, err1 := r.Get("test").Build(m1)
 
 	assert.EqualError(t, err1, "wrong number of parameters: 3 given, 2 required", "they should match")
 	assert.Equal(t, "", s1, "they should match")
@@ -100,14 +102,14 @@ func TestRouteBuildShouldError(t *testing.T) {
 		"not": "valid",
 	}
 
-	s2, err2 := router.Get("test").Build(m2)
+	s2, err2 := r.Get("test").Build(m2)
 
 	assert.EqualError(t, err2, "parameter not valid: not", "they should match")
 	assert.Equal(t, "", s2, "they should match")
 }
 
 func TestRouteBuild(t *testing.T) {
-	router := DefaultRouter().RouteMap(
+	r := DefaultRouter().RouteMap(
 		NewRoute().Name("test").For("/people/{id:i}/details/{name}").With("GET", TestController{}.SimpleGet),
 	)
 
@@ -116,18 +118,18 @@ func TestRouteBuild(t *testing.T) {
 		"name": "Joe",
 	}
 
-	s, err := router.Get("test").Build(m)
+	s, err := r.Get("test").Build(m)
 
 	assert.Nil(t, err, "error should be nil")
 	assert.Equal(t, "/people/65/details/Joe", s, "they should match")
 }
 
 func TestRouterPrefix(t *testing.T) {
-	router := DefaultRouter().Prefix("/api/v3").RouteMap(
+	r := DefaultRouter().Prefix("/api/v3").RouteMap(
 		NewRoute().Name("TestRoute").For("/people/{id:i}/details/{name:a}").With("GET", TestController{}.SimpleGet),
 	)
 
-	testRoute := router.Get("TestRoute")
+	testRoute := r.Get("TestRoute")
 
 	assert.Equal(t, "/api/v3/people/{id:i}/details/{name:a}", testRoute.Path, "Paths should match")
 }
@@ -135,16 +137,28 @@ func TestRouterPrefix(t *testing.T) {
 /// BENCHMARKS
 
 func BenchmarkRouterMatch(b *testing.B) {
-	n := 1000
+	n := 20
 	var routes []*routeBuilder
 
 	for i := 0; i < n; i++ {
-		routes = append(routes, NewRoute().Name("TestRoute").For("/people/{id:i}/details/{name:a}").With("GET", TestController{}.SimpleGet))
+		routes = append(routes, randomRouteBuilder())
 	}
 
-	rr := DefaultRouter().RouteMap(routes...)
+	rr := Router("benchmark").RouteMap(routes...)
 
 	for n := 0; n < b.N; n++ {
-		rr.Match("test")
+		rr.Match("/people/10")
 	}
+}
+
+func randomRouteBuilder() *routeBuilder {
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+
+	var routes = []*routeBuilder{
+		NewRoute().Name("TestRoute").For("/people/{id:i}/details/{name:a}").With("GET", TestController{}.SimpleGet),
+		NewRoute().Name("TestRoute").For("/people/{id:i}/details").With("GET", TestController{}.SimpleGet),
+		NewRoute().Name("TestRoute").For("/people/{id:i}").With("GET", TestController{}.SimpleGet),
+	}
+
+	return routes[r.Intn(len(routes))]
 }

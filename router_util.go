@@ -10,68 +10,55 @@ const (
 	intParam      = "i"
 	alphaParam    = "a"
 	alphaNumParam = "an"
-	anythingParam = ""
 )
 
-type Pattern struct {
+type pattern struct {
 	key     string
 	allowed string
 }
 
-type Param struct {
+type param struct {
 	name  string
 	value interface{}
 }
 
-type RouteUri struct {
+type routeUri struct {
 	parts    []string
-	patterns map[int]Pattern
+	patterns map[int]pattern
 }
 
-type TestUri struct {
+type testUri struct {
 	parts  []string
-	params map[int]Param
+	params map[int]param
 }
 
-func NewRouteUri(path string) RouteUri {
+func newRouteUri(path string) routeUri {
 	var parts []string
-	var patterns = make(map[int]Pattern)
+	var patterns = make(map[int]pattern)
 
 	parts = strings.Split(path, "/")
 
-	for i := 0; i < len(parts); i++ {
-		part := parts[i]
+	routePatternMapperFunc(parts, func(i int, param, pType string) {
+		patterns[i] = pattern{param, pType}
+	})
 
-		if len(part) > 0 && string(part[0]) == "{" && string(part[len(part)-1]) == "}" {
-			key := part[1 : len(part)-1]
-			var allowed string
-
-			if index := strings.Index(part, ":"); index >= 0 {
-				key = part[1:index]
-				allowed = part[index+1 : len(part)-1]
-			}
-
-			patterns[i] = Pattern{key, allowed}
-		}
-	}
-
-	return RouteUri{parts, patterns}
+	return routeUri{parts, patterns}
 }
 
-func NewTestUri(path string) TestUri {
+func newTestUri(path string) testUri {
 	var parts []string
 
 	parts = strings.Split(path, "/")
 
-	return TestUri{parts, make(map[int]Param)}
+	return testUri{parts, make(map[int]param)}
 }
 
-type UriMatcher struct {
-	route RouteUri
-	test  TestUri
+type uriMatcher struct {
+	route routeUri
+	test  testUri
 }
 
-func (um UriMatcher) match() bool {
+func (um uriMatcher) match() bool {
 	if len(um.route.parts) != len(um.test.parts) {
 		return false
 	}
@@ -102,11 +89,29 @@ func (um UriMatcher) match() bool {
 				}
 			}
 
-			um.test.params[i] = Param{um.route.patterns[i].key, testPart}
+			um.test.params[i] = param{um.route.patterns[i].key, testPart}
 		} else if a != b {
 			return false
 		}
 	}
 
 	return true
+}
+
+func routePatternMapperFunc(parts []string, fn func(index int, param, pType string)) {
+	for i := 0; i < len(parts); i++ {
+		part := parts[i]
+
+		if len(part) > 0 && string(part[0]) == "{" && string(part[len(part)-1]) == "}" {
+			param := part[1 : len(part)-1]
+			var pType string
+
+			if index := strings.Index(part, ":"); index >= 0 {
+				param = part[1:index]
+				pType = part[index+1 : len(part)-1]
+			}
+
+			fn(i, param, pType)
+		}
+	}
 }
