@@ -6,6 +6,7 @@ import (
 	"strconv"
 )
 
+// Route is the type that is handled within the router.  It contains all information about the defined route for given actions
 type Route struct {
 	Path        string
 	Actions     map[string]Action
