@@ -1,6 +1,8 @@
-package rest
+package doze
 
 import (
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -134,17 +136,23 @@ func TestRouterPrefix(t *testing.T) {
 
 /// BENCHMARKS
 
-func BenchmarkRouterMatch(b *testing.B) {
-	n := 10000
-	var routes []*routeBuilder
+func BenchmarkRouterMatch2(b *testing.B) {
+	b.StopTimer()
 
-	for i := 0; i < n; i++ {
-		routes = append(routes, NewRoute().Name("TestRoute").For("/people/{id:i}/details/{name:a}").With("GET", TestController{}.SimpleGet))
-	}
+	proute := "/{a}/{b}/{c}"
+	route := "/a/b/c"
 
-	rr := DefaultRouter().RouteMap(routes...)
+	rr := Router("benchmark").RouteMap(
+		NewRoute().Name("TestRoute3").For(proute).With("GET", TestController{}.SimpleGet),
+	)
 
+	h := NewHandler(rr)
+
+	req, _ := http.NewRequest("GET", route, nil)
+	resp := httptest.NewRecorder()
+
+	b.StartTimer()
 	for n := 0; n < b.N; n++ {
-		rr.Match("test")
+		h.ServeHTTP(resp, req)
 	}
 }

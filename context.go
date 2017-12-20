@@ -1,4 +1,4 @@
-package rest
+package doze
 
 import (
 	"encoding/json"
