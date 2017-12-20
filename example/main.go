@@ -2,9 +2,10 @@ package main
 
 import (
 	"fmt"
-	"go-tfts"
 	"log"
 	"net/http"
+
+	"github.com/Mehokm/doze"
 )
 
 // User struct holds basic data about a user
@@ -32,17 +33,17 @@ type UserController struct {
 }
 
 // GetUser action maps to route /users/{id:i}
-func (uc UserController) GetUser(c rest.Context) rest.ResponseSender {
-	return rest.NewOKJSONResponse(User{"John", "Smith"})
+func (uc UserController) GetUser(c doze.Context) doze.ResponseSender {
+	return doze.NewOKJSONResponse(User{"John", "Smith"})
 }
 
 // GetAllUsers action maps to route /users (GET)
-func (uc UserController) GetAllUsers(c rest.Context) rest.ResponseSender {
-	return rest.NewOKJSONResponse(users)
+func (uc UserController) GetAllUsers(c doze.Context) doze.ResponseSender {
+	return doze.NewOKJSONResponse(users)
 }
 
 // CreateUser action maps to route /users (POST)
-func (uc UserController) CreateUser(c rest.Context) rest.ResponseSender {
+func (uc UserController) CreateUser(c doze.Context) doze.ResponseSender {
 	var user User
 
 	c.BindJSONEntity(&user)
@@ -51,7 +52,7 @@ func (uc UserController) CreateUser(c rest.Context) rest.ResponseSender {
 
 	uc.db.execute(fmt.Sprintf("INSERT INTO User (`firstName`, `lastName`) VALUES ('%v', '%v')", user.FirstName, user.LastName))
 
-	return rest.NewCreatedJSONResponse(user)
+	return doze.NewCreatedJSONResponse(user)
 }
 
 func main() {
@@ -59,21 +60,21 @@ func main() {
 
 	userController := UserController{stubDB{}}
 
-	router := rest.DefaultRouter().Prefix(root).RouteMap(
-		rest.NewRoute().For("/users/{id:i}").
-			With(rest.MethodGET, userController.GetUser),
-		rest.NewRoute().For("/users").
-			With(rest.MethodGET, userController.GetAllUsers).
-			And(rest.MethodPOST, userController.CreateUser),
+	router := doze.DefaultRouter().Prefix(root).RouteMap(
+		doze.NewRoute().For("/users/{id:i}").
+			With(http.MethodGet, userController.GetUser),
+		doze.NewRoute().For("/users").
+			With(http.MethodGet, userController.GetAllUsers).
+			And(http.MethodPost, userController.CreateUser),
 	)
 
-	h := rest.NewHandler(router)
+	h := doze.NewHandler(router)
 
-	h.Use(func(c rest.Context) {
+	h.Use(func(c doze.Context) {
 		c.Next()
 	})
 
-	h.Use(func(c rest.Context) {
+	h.Use(func(c doze.Context) {
 		c.Next()
 	})
 
