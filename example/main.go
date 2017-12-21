@@ -39,17 +39,17 @@ type UserController struct {
 // }
 
 // GetUser action maps to route /users/{id:i}
-func (uc UserController) GetUser(c doze.Context) doze.ResponseSender {
-	return doze.NewOKJSONResponse(User{"John", "Smith"})
+func (uc UserController) GetUser(c *doze.Context) doze.ResponseSender {
+	return doze.NewOKJSONResponse(User{c.Value("firstName").(string), c.Value("lastName").(string)})
 }
 
 // GetAllUsers action maps to route /users (GET)
-func (uc UserController) GetAllUsers(c doze.Context) doze.ResponseSender {
+func (uc UserController) GetAllUsers(c *doze.Context) doze.ResponseSender {
 	return doze.NewOKJSONResponse(users)
 }
 
 // CreateUser action maps to route /users (POST)
-func (uc UserController) CreateUser(c doze.Context) doze.ResponseSender {
+func (uc UserController) CreateUser(c *doze.Context) doze.ResponseSender {
 	var user User
 
 	c.BindJSONEntity(&user)
@@ -77,6 +77,18 @@ func main() {
 	)
 
 	h := doze.NewHandler(router)
+
+	h.Use(func(c *doze.Context) {
+		c.Set("firstName", "Boozo")
+
+		c.Next()
+	})
+
+	h.Use(func(c *doze.Context) {
+		c.Set("lastName", "The Clown")
+
+		c.Next()
+	})
 
 	http.Handle(h.Pattern(), h)
 

@@ -1,12 +1,14 @@
 package doze
 
 import (
+	"context"
 	"encoding/json"
+	"net/http"
 	"net/url"
 )
 
 type Context struct {
-	Request        Request
+	Request        *http.Request
 	ResponseWriter *ResponseWriter
 	Route          *Route
 	middlewares    []Middleware
@@ -14,8 +16,20 @@ type Context struct {
 	action         Action
 }
 
+// Set puts a value on the current context.Context by key
+func (c *Context) Set(key, value interface{}) {
+	ctx := context.WithValue(c.Request.Context(), key, value)
+
+	c.Request = c.Request.WithContext(ctx)
+}
+
+// Value returns the value by key on the current context.Context
+func (c *Context) Value(key interface{}) interface{} {
+	return c.Request.Context().Value(key)
+}
+
 // FormData returns data related to the request from GET, POST, or PUT
-func (c Context) FormData() url.Values {
+func (c *Context) FormData() url.Values {
 	c.Request.ParseForm()
 	switch c.Request.Method {
 	case "POST":
@@ -28,18 +42,18 @@ func (c Context) FormData() url.Values {
 }
 
 // BindJSONEntity binds the JSON body from the request to an interface{}
-func (c Context) BindJSONEntity(i interface{}) error {
+func (c *Context) BindJSONEntity(i interface{}) error {
 	return json.NewDecoder(c.Request.Body).Decode(&i)
 }
 
 // Next calls the next middleware in the chain
-func (c Context) Next() {
+func (c *Context) Next() {
 	c.mIndex++
 
 	c.run()
 }
 
-func (c Context) run() {
+func (c *Context) run() {
 	if c.ResponseWriter.Written() {
 		return
 	}

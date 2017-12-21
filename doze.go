@@ -18,13 +18,13 @@ type Routeable interface {
 }
 
 // Action is a type for all controller actions
-type Action func(Context) ResponseSender
+type Action func(*Context) ResponseSender
 
 // Interceptor is a type for adding an intercepting the request before it is processed
-type Interceptor func(Context) bool
+type Interceptor func(*Context) bool
 
 // Middleware is a type for adding middleware for the request
-type Middleware func(Context)
+type Middleware func(*Context)
 
 // Handler implements http.Handler and contains the router and controllers for the REST api
 type handler struct {
@@ -50,7 +50,7 @@ func (h *handler) Use(m Middleware) {
 	h.middlewares = append(h.middlewares, m)
 }
 
-func (h *handler) invokeInterceptors(c Context) bool {
+func (h *handler) invokeInterceptors(c *Context) bool {
 	result := true
 	for i := 0; i < len(h.interceptors) && result; i++ {
 		result = h.interceptors[i](c)
@@ -72,8 +72,8 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	context := Context{
-		Request:        Request{r, requestData{make(map[interface{}]interface{})}},
+	context := &Context{
+		Request:        r,
 		ResponseWriter: &ResponseWriter{w, 0, 0},
 		Route:          route,
 		middlewares:    h.middlewares,

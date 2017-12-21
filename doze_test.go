@@ -12,11 +12,11 @@ import (
 
 type TestController struct{}
 
-func (t TestController) SimpleGet(c Context) ResponseSender {
+func (t TestController) SimpleGet(c *Context) ResponseSender {
 	return NewOKJSONResponse(TestStruct{"Simple Get"})
 }
 
-func (t TestController) SimplePost(c Context) ResponseSender {
+func (t TestController) SimplePost(c *Context) ResponseSender {
 	var ts TestStruct
 
 	c.BindJSONEntity(&ts)
@@ -24,7 +24,7 @@ func (t TestController) SimplePost(c Context) ResponseSender {
 	return NewOKJSONResponse(ts)
 }
 
-func (t TestController) SimplePut(c Context) ResponseSender {
+func (t TestController) SimplePut(c *Context) ResponseSender {
 	var ts TestStruct
 
 	c.BindJSONEntity(&ts)
@@ -123,7 +123,7 @@ func TestRestHandlerInterceptorTrue(t *testing.T) {
 
 	h := NewHandler(r)
 
-	h.Intercept(func(c Context) bool {
+	h.Intercept(func(c *Context) bool {
 		c.ResponseWriter.Header().Add("test", "true")
 
 		return true
@@ -142,7 +142,7 @@ func TestRestHandlerInterceptorFalse(t *testing.T) {
 
 	h := NewHandler(r)
 
-	h.Intercept(func(c Context) bool {
+	h.Intercept(func(c *Context) bool {
 		c.ResponseWriter.Header().Add("test", "false")
 
 		return false
