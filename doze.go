@@ -38,6 +38,10 @@ func NewHandler(r Routeable) *handler {
 	return &handler{r, make([]Interceptor, 0), make([]Middleware, 0)}
 }
 
+func (h *handler) Pattern() string {
+	return h.router.(router).prefix + "/"
+}
+
 func (h *handler) Intercept(i Interceptor) {
 	h.interceptors = append(h.interceptors, i)
 }

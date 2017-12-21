@@ -32,6 +32,12 @@ type UserController struct {
 	db stubDB
 }
 
+// // RedirectToUser action maps to route /users/{id:i}/{to:i}
+// func (uc UserController) RedirectToUser(c doze.Context) doze.ResponseSender {
+// 	http.Redirect(c.ResponseWriter, c.Request.Request, "http://www.google.com", 301)
+// 	return doze.NewNoContentResponse()
+// }
+
 // GetUser action maps to route /users/{id:i}
 func (uc UserController) GetUser(c doze.Context) doze.ResponseSender {
 	return doze.NewOKJSONResponse(User{"John", "Smith"})
@@ -63,6 +69,8 @@ func main() {
 	router := doze.DefaultRouter().Prefix(root).RouteMap(
 		doze.NewRoute().For("/users/{id:i}").
 			With(http.MethodGet, userController.GetUser),
+		// doze.NewRoute().For("/users/{id:i}/{to:i}").
+		// 	With(http.MethodGet, userController.RedirectToUser),
 		doze.NewRoute().For("/users").
 			With(http.MethodGet, userController.GetAllUsers).
 			And(http.MethodPost, userController.CreateUser),
@@ -70,15 +78,7 @@ func main() {
 
 	h := doze.NewHandler(router)
 
-	h.Use(func(c doze.Context) {
-		c.Next()
-	})
-
-	h.Use(func(c doze.Context) {
-		c.Next()
-	})
-
-	http.Handle(root+"/", h)
+	http.Handle(h.Pattern(), h)
 
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }

@@ -42,7 +42,6 @@ func NewCreatedJSONResponse(body interface{}) BasicResponse {
 func NewNoContentResponse() BasicResponse {
 	return BasicResponse{
 		StatusCode: http.StatusNoContent,
-		Body:       []byte(http.StatusText(http.StatusNoContent)),
 	}
 }
 
