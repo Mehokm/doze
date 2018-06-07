@@ -7,6 +7,7 @@ import (
 	"net/url"
 )
 
+// Context will contain all information about the current request scoped context
 type Context struct {
 	Request        *http.Request
 	ResponseWriter *ResponseWriter

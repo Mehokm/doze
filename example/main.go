@@ -32,15 +32,26 @@ type UserController struct {
 	db stubDB
 }
 
-// // RedirectToUser action maps to route /users/{id:i}/{to:i}
-// func (uc UserController) RedirectToUser(c doze.Context) doze.ResponseSender {
-// 	http.Redirect(c.ResponseWriter, c.Request.Request, "http://www.google.com", 301)
-// 	return doze.NewNoContentResponse()
-// }
+// RedirectToUser action maps to route /users/{id:i}/{to:i}
+func (uc UserController) RedirectToUser(c *doze.Context) doze.ResponseSender {
+	params := c.Route.Params()
+
+	newParams := map[string]interface{}{"id": params["to"]}
+
+	newRoute, err := doze.DefaultRouter().Get("user").Build(newParams)
+
+	if err != nil {
+		fmt.Println(err)
+		return doze.NewInternalServerErrorResponse()
+	}
+
+	http.Redirect(c.ResponseWriter, c.Request, newRoute, 302)
+	return nil
+}
 
 // GetUser action maps to route /users/{id:i}
 func (uc UserController) GetUser(c *doze.Context) doze.ResponseSender {
-	return doze.NewOKJSONResponse(User{c.Value("firstName").(string), c.Value("lastName").(string)})
+	return doze.NewOKJSONResponse(users[c.Route.Params()["id"].(int)-1])
 }
 
 // GetAllUsers action maps to route /users (GET)
@@ -66,29 +77,17 @@ func main() {
 
 	userController := UserController{stubDB{}}
 
-	router := doze.DefaultRouter().Prefix(root).RouteMap(
-		doze.NewRoute().For("/users/{id:i}").
+	router := doze.DefaultRouter().SetPrefix(root).RouteMap(
+		doze.NewRoute().Name("user").For("/users/{id:i}").
 			With(http.MethodGet, userController.GetUser),
-		// doze.NewRoute().For("/users/{id:i}/{to:i}").
-		// 	With(http.MethodGet, userController.RedirectToUser),
+		doze.NewRoute().For("/users/{id:i}/{to:i}").
+			With(http.MethodGet, userController.RedirectToUser),
 		doze.NewRoute().For("/users").
 			With(http.MethodGet, userController.GetAllUsers).
 			And(http.MethodPost, userController.CreateUser),
 	)
 
 	h := doze.NewHandler(router)
-
-	h.Use(func(c *doze.Context) {
-		c.Set("firstName", "Boozo")
-
-		c.Next()
-	})
-
-	h.Use(func(c *doze.Context) {
-		c.Set("lastName", "The Clown")
-
-		c.Next()
-	})
 
 	http.Handle(h.Pattern(), h)
 

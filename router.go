@@ -25,7 +25,7 @@ type router struct {
 	routingMap map[*Route]*regexp.Regexp
 }
 
-type routeBuilder struct {
+type RouteBuilder struct {
 	path      string
 	actions   map[string]Action
 	routeName string
@@ -62,52 +62,56 @@ func Router(name string) router {
 	return routers[name]
 }
 
-func (ro router) Prefix(prefix string) router {
+func (ro router) SetPrefix(prefix string) router {
 	ro.prefix = prefix
 
 	return ro
 }
 
-// NewRoute returns a wrapper to make a builder for Route
-func NewRoute() *routeBuilder {
-	return &routeBuilder{actions: make(map[string]Action)}
+func (ro router) Prefix() string {
+	return ro.prefix
 }
 
-func (rb *routeBuilder) Name(name string) *routeBuilder {
+// NewRoute returns a wrapper to make a builder for Route
+func NewRoute() *RouteBuilder {
+	return &RouteBuilder{actions: make(map[string]Action)}
+}
+
+func (rb *RouteBuilder) Name(name string) *RouteBuilder {
 	rb.routeName = name
 
 	return rb
 }
 
-func (rb *routeBuilder) For(path string) *routeBuilder {
+func (rb *RouteBuilder) For(path string) *RouteBuilder {
 	rb.path = path
 
 	return rb
 }
 
-func (rb *routeBuilder) With(method string, action Action) *routeBuilder {
+func (rb *RouteBuilder) With(method string, action Action) *RouteBuilder {
 	rb.actions[method] = action
 
 	return rb
 }
 
-func (rb *routeBuilder) And(method string, action Action) *routeBuilder {
+func (rb *RouteBuilder) And(method string, action Action) *RouteBuilder {
 	return rb.With(method, action)
 }
 
-func (ro router) RouteMap(rbs ...*routeBuilder) router {
-	for _, routeBuilder := range rbs {
+func (ro router) RouteMap(rbs ...*RouteBuilder) router {
+	for _, RouteBuilder := range rbs {
 		route := &Route{
-			Path:    ro.prefix + routeBuilder.path,
-			Actions: routeBuilder.actions,
+			Path:    ro.prefix + RouteBuilder.path,
+			Actions: RouteBuilder.actions,
 		}
 
 		ro.initRoute(route)
 
-		if routeBuilder.routeName == "" {
-			ro.Routes[routeBuilder.path] = route
+		if RouteBuilder.routeName == "" {
+			ro.Routes[RouteBuilder.path] = route
 		}
-		ro.Routes[routeBuilder.routeName] = route
+		ro.Routes[RouteBuilder.routeName] = route
 	}
 
 	return ro

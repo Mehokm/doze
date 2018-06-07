@@ -125,7 +125,7 @@ func TestRouteBuild(t *testing.T) {
 }
 
 func TestRouterPrefix(t *testing.T) {
-	router := DefaultRouter().Prefix("/api/v3").RouteMap(
+	router := DefaultRouter().SetPrefix("/api/v3").RouteMap(
 		NewRoute().Name("TestRoute").For("/people/{id:i}/details/{name:a}").With("GET", TestController{}.SimpleGet),
 	)
 

@@ -27,30 +27,30 @@ type Interceptor func(*Context) bool
 type Middleware func(*Context)
 
 // Handler implements http.Handler and contains the router and controllers for the REST api
-type handler struct {
-	router       Routeable
+type Handler struct {
+	Router       Routeable
 	interceptors []Interceptor
 	middlewares  []Middleware
 }
 
 // NewHandler returns a new Handler with router initialized
-func NewHandler(r Routeable) *handler {
-	return &handler{r, make([]Interceptor, 0), make([]Middleware, 0)}
+func NewHandler(r Routeable) *Handler {
+	return &Handler{r, make([]Interceptor, 0), make([]Middleware, 0)}
 }
 
-func (h *handler) Pattern() string {
-	return h.router.(router).prefix + "/"
+func (h *Handler) Pattern() string {
+	return h.Router.(router).prefix + "/"
 }
 
-func (h *handler) Intercept(i Interceptor) {
+func (h *Handler) Intercept(i Interceptor) {
 	h.interceptors = append(h.interceptors, i)
 }
 
-func (h *handler) Use(m Middleware) {
+func (h *Handler) Use(m Middleware) {
 	h.middlewares = append(h.middlewares, m)
 }
 
-func (h *handler) invokeInterceptors(c *Context) bool {
+func (h *Handler) invokeInterceptors(c *Context) bool {
 	result := true
 	for i := 0; i < len(h.interceptors) && result; i++ {
 		result = h.interceptors[i](c)
@@ -59,8 +59,8 @@ func (h *handler) invokeInterceptors(c *Context) bool {
 	return result
 }
 
-func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	route := h.router.Match(r.URL.Path)
+func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	route := h.Router.Match(r.URL.Path)
 	if route == nil {
 		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
 		return
@@ -87,6 +87,5 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	context.run()
-
 	return
 }
