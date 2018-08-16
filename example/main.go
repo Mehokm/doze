@@ -89,6 +89,38 @@ func main() {
 
 	h := doze.NewHandler(router)
 
+	h.Use(func(ctx *doze.Context, next doze.NextFunc) {
+		fmt.Println("one")
+
+		next(ctx)
+
+		fmt.Println("eno")
+	})
+
+	h.Use(func(ctx *doze.Context, next doze.NextFunc) {
+		fmt.Println("two")
+
+		next(ctx)
+
+		fmt.Println("owt")
+	})
+
+	h.Use(func(ctx *doze.Context, next doze.NextFunc) {
+		fmt.Println("three")
+
+		next(ctx)
+
+		fmt.Println("eerht")
+	})
+
+	h.Use(func(ctx *doze.Context, next doze.NextFunc) {
+		fmt.Println("four")
+
+		next(ctx)
+
+		fmt.Println("ruoh")
+	})
+
 	http.Handle(h.Pattern(), h)
 
 	log.Fatal(http.ListenAndServe(":8080", nil))

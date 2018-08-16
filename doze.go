@@ -1,6 +1,8 @@
 package doze
 
-import "net/http"
+import (
+	"net/http"
+)
 
 // Routeable is an interface which allows you to create your own router
 // * Get(string) *Route returns the route by route name
@@ -14,49 +16,29 @@ type Routeable interface {
 	Match(string) *Route
 	SetParamNames(*Route, []string)
 	SetParamValues(*Route, []interface{})
-	SetActions(*Route, map[string]Action)
+	SetActions(*Route, map[string]ActionFunc)
 }
 
 // Action is a type for all controller actions
-type Action func(*Context) ResponseSender
-
-// Interceptor is a type for adding an intercepting the request before it is processed
-type Interceptor func(*Context) bool
-
-// Middleware is a type for adding middleware for the request
-type Middleware func(*Context)
+type ActionFunc func(*Context) ResponseSender
 
 // Handler implements http.Handler and contains the router and controllers for the REST api
 type Handler struct {
-	Router       Routeable
-	interceptors []Interceptor
-	middlewares  []Middleware
+	Router          Routeable
+	middlewareChain *middlewareChain
 }
 
 // NewHandler returns a new Handler with router initialized
 func NewHandler(r Routeable) *Handler {
-	return &Handler{r, make([]Interceptor, 0), make([]Middleware, 0)}
+	return &Handler{Router: r, middlewareChain: new(middlewareChain)}
 }
 
 func (h *Handler) Pattern() string {
 	return h.Router.(router).prefix + "/"
 }
 
-func (h *Handler) Intercept(i Interceptor) {
-	h.interceptors = append(h.interceptors, i)
-}
-
-func (h *Handler) Use(m Middleware) {
-	h.middlewares = append(h.middlewares, m)
-}
-
-func (h *Handler) invokeInterceptors(c *Context) bool {
-	result := true
-	for i := 0; i < len(h.interceptors) && result; i++ {
-		result = h.interceptors[i](c)
-	}
-
-	return result
+func (h *Handler) Use(mf MiddlewareFunc) {
+	h.middlewareChain.add(mf)
 }
 
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -76,16 +58,10 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		Request:        r,
 		ResponseWriter: &ResponseWriter{w, 0, 0},
 		Route:          route,
-		middlewares:    h.middlewares,
-		action:         action,
 	}
 
-	if ok := h.invokeInterceptors(context); !ok {
-		// maybe check to see if response and header/status has been written
-		// if not, then probably should do something
-		return
-	}
+	h.middlewareChain.action = action
 
-	context.run()
+	h.middlewareChain.run(context)
 	return
 }

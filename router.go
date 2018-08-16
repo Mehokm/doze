@@ -27,7 +27,7 @@ type router struct {
 
 type RouteBuilder struct {
 	path      string
-	actions   map[string]Action
+	actions   map[string]ActionFunc
 	routeName string
 }
 
@@ -74,7 +74,7 @@ func (ro router) Prefix() string {
 
 // NewRoute returns a wrapper to make a builder for Route
 func NewRoute() *RouteBuilder {
-	return &RouteBuilder{actions: make(map[string]Action)}
+	return &RouteBuilder{actions: make(map[string]ActionFunc)}
 }
 
 func (rb *RouteBuilder) Name(name string) *RouteBuilder {
@@ -89,13 +89,13 @@ func (rb *RouteBuilder) For(path string) *RouteBuilder {
 	return rb
 }
 
-func (rb *RouteBuilder) With(method string, action Action) *RouteBuilder {
+func (rb *RouteBuilder) With(method string, action ActionFunc) *RouteBuilder {
 	rb.actions[method] = action
 
 	return rb
 }
 
-func (rb *RouteBuilder) And(method string, action Action) *RouteBuilder {
+func (rb *RouteBuilder) And(method string, action ActionFunc) *RouteBuilder {
 	return rb.With(method, action)
 }
 
@@ -173,6 +173,6 @@ func (ro router) SetParamValues(r *Route, pv []interface{}) {
 	r.ParamValues = pv
 }
 
-func (ro router) SetActions(r *Route, a map[string]Action) {
+func (ro router) SetActions(r *Route, a map[string]ActionFunc) {
 	r.Actions = a
 }
