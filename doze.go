@@ -19,7 +19,7 @@ type Routeable interface {
 	SetActions(*Route, map[string]ActionFunc)
 }
 
-// Action is a type for all controller actions
+// ActionFunc is a type that is a function to be used as a controller action
 type ActionFunc func(*Context) ResponseSender
 
 // Handler implements http.Handler and contains the router and controllers for the REST api
@@ -33,10 +33,7 @@ func NewHandler(r Routeable) *Handler {
 	return &Handler{Router: r, middlewareChain: new(middlewareChain)}
 }
 
-func (h *Handler) Pattern() string {
-	return h.Router.(router).prefix + "/"
-}
-
+// Use applies a MiddlewareFunc to be executed in the request chain
 func (h *Handler) Use(mf MiddlewareFunc) {
 	h.middlewareChain.add(mf)
 }

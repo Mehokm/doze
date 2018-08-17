@@ -33,7 +33,9 @@ func (mc *middlewareChain) add(mf MiddlewareFunc) {
 
 func (mc *middlewareChain) run(ctx *Context) {
 	// build the actual function chain
-	fn := buildChain(ctx, mc.root, mc.action)
+	mcCopy := *mc
+
+	fn := buildChain(ctx, mcCopy.root, mcCopy.action)
 
 	// start the chain
 	fn(ctx)

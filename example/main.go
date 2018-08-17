@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/Mehokm/doze"
 )
@@ -89,39 +90,34 @@ func main() {
 
 	h := doze.NewHandler(router)
 
+	// quick and dirty logging as an example
 	h.Use(func(ctx *doze.Context, next doze.NextFunc) {
-		fmt.Println("one")
+		start := time.Now()
+
+		remoteAddr := ctx.Request.RemoteAddr
+		date := time.Now().Local().Format("2006-01-02")
+		method := ctx.Request.Method
+		url := ctx.Request.URL
+		httpVersion := ctx.Request.Proto
+		referrer := ctx.Request.Referer()
+		userAgent := ctx.Request.UserAgent()
 
 		next(ctx)
 
-		fmt.Println("eno")
+		httpStatus := ctx.ResponseWriter.StatusCode
+		contentLength := ctx.ResponseWriter.Size
+
+		total := time.Since(start) * 1000
+
+		logStr := fmt.Sprintf(
+			"%v - [%v] \"%v %v %v\" %v %v \"%v\" \"%v\" - %v ms",
+			remoteAddr, date, method, url, httpVersion, httpStatus, contentLength, referrer, userAgent, total,
+		)
+
+		fmt.Println(logStr)
 	})
 
-	h.Use(func(ctx *doze.Context, next doze.NextFunc) {
-		fmt.Println("two")
-
-		next(ctx)
-
-		fmt.Println("owt")
-	})
-
-	h.Use(func(ctx *doze.Context, next doze.NextFunc) {
-		fmt.Println("three")
-
-		next(ctx)
-
-		fmt.Println("eerht")
-	})
-
-	h.Use(func(ctx *doze.Context, next doze.NextFunc) {
-		fmt.Println("four")
-
-		next(ctx)
-
-		fmt.Println("ruoh")
-	})
-
-	http.Handle(h.Pattern(), h)
+	http.Handle(router.Prefix()+"/", h)
 
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
