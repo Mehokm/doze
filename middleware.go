@@ -45,22 +45,29 @@ func (mc *middlewareChain) run(ctx *Context) {
 
 func buildChain(ctx *Context, m *middleware, action ActionFunc) NextFunc {
 	return func(ctx *Context) {
-		if m.next == nil {
+		// no middleware, so no need to wrap in MiddlewareFunc
+		if m == nil {
+			doAction(ctx, action)
+		} else if m.next == nil {
 			// no more middleware, so call the actual action
 			m.fn(ctx, func(ctx *Context) {
-				result := action(ctx)
-
-				if result != nil {
-					_, err := result.Send(ctx.ResponseWriter)
-
-					if err != nil {
-						panic(err)
-					}
-				}
+				doAction(ctx, action)
 			})
 		} else {
 			// keep building the chain recursively...
 			m.fn(ctx, buildChain(ctx, m.next, action))
+		}
+	}
+}
+
+func doAction(ctx *Context, action ActionFunc) {
+	result := action(ctx)
+
+	if result != nil {
+		_, err := result.Send(ctx.ResponseWriter)
+
+		if err != nil {
+			panic(err)
 		}
 	}
 }
