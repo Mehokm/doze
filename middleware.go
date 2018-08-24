@@ -1,7 +1,9 @@
 package doze
 
-// MiddlewareFunc is a type for adding middleware for the request
+// MiddlewareFunc is a function type for adding middleware to the request
 type MiddlewareFunc func(*Context, NextFunc)
+
+// NextFunc is a function type that progresses the middleware chain for the request
 type NextFunc func(*Context)
 
 type middleware struct {
@@ -57,7 +59,7 @@ func buildChain(ctx *Context, m *middleware, action ActionFunc) NextFunc {
 				}
 			})
 		} else {
-			// keep building the chain...
+			// keep building the chain recursively...
 			m.fn(ctx, buildChain(ctx, m.next, action))
 		}
 	}
