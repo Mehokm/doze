@@ -8,7 +8,7 @@ import (
 
 type Route struct {
 	Path        string
-	Actions     map[string]Action
+	Actions     map[string]ActionFunc
 	ParamNames  []string
 	ParamValues []interface{}
 }

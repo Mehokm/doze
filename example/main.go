@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/Mehokm/doze"
 )
@@ -89,7 +90,34 @@ func main() {
 
 	h := doze.NewHandler(router)
 
-	http.Handle(h.Pattern(), h)
+	// quick and dirty logging as an example
+	h.Use(func(ctx *doze.Context, next doze.NextFunc) {
+		start := time.Now()
+
+		remoteAddr := ctx.Request.RemoteAddr
+		date := time.Now().Local().Format("2006-01-02")
+		method := ctx.Request.Method
+		url := ctx.Request.URL
+		httpVersion := ctx.Request.Proto
+		referrer := ctx.Request.Referer()
+		userAgent := ctx.Request.UserAgent()
+
+		next(ctx)
+
+		httpStatus := ctx.ResponseWriter.StatusCode
+		contentLength := ctx.ResponseWriter.Size
+
+		total := time.Since(start) * 1000
+
+		logStr := fmt.Sprintf(
+			"%v - [%v] \"%v %v %v\" %v %v \"%v\" \"%v\" - %v ms",
+			remoteAddr, date, method, url, httpVersion, httpStatus, contentLength, referrer, userAgent, total,
+		)
+
+		fmt.Println(logStr)
+	})
+
+	http.Handle(router.Prefix()+"/", h)
 
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
