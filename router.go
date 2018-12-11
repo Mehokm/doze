@@ -19,108 +19,89 @@ var regMap = map[string]string{
 	alphaNumParam: `([0-9A-Za-z]+)`,
 }
 
-type router struct {
+type RestRouter struct {
 	prefix     string
-	Routes     map[string]*Route
-	routingMap map[*Route]*regexp.Regexp
-}
-
-type RouteBuilder struct {
-	path      string
-	actions   map[string]ActionFunc
-	routeName string
+	routes     map[string]Route
+	routingMap map[Route]*regexp.Regexp
 }
 
 var (
-	routers map[string]router
+	routers map[string]RestRouter
 	lock    sync.RWMutex
 )
 
 func init() {
-	routers = make(map[string]router)
-	routers["default"] = router{"", make(map[string]*Route), make(map[*Route]*regexp.Regexp)}
+	routers = make(map[string]RestRouter)
 }
 
-// DefaultRouter returns the router with name "default"
-func DefaultRouter() router {
-	lock.Lock()
-	defer lock.Unlock()
-
-	return routers["default"]
-}
-
-// Router returns a router specified by a name
-func Router(name string) router {
+// NewRouter returns a router specified by a name
+func Router(name string) RestRouter {
 	lock.Lock()
 	defer lock.Unlock()
 
 	// create new router if it doesn't exist
 	if _, ok := routers[name]; !ok {
-		routers[name] = router{"", make(map[string]*Route), make(map[*Route]*regexp.Regexp)}
+		routers[name] = RestRouter{"", make(map[string]Route), make(map[Route]*regexp.Regexp)}
 	}
 
 	return routers[name]
 }
 
-func (ro router) SetPrefix(prefix string) router {
+func (ro RestRouter) SetPrefix(prefix string) RestRouter {
 	ro.prefix = prefix
 
 	return ro
 }
 
-func (ro router) Prefix() string {
+func (ro RestRouter) Prefix() string {
 	return ro.prefix
 }
 
-// NewRoute returns a wrapper to make a builder for Route
-func NewRoute() *RouteBuilder {
-	return &RouteBuilder{actions: make(map[string]ActionFunc)}
+// NewRoute returns a new *DozeRoute
+func NewRoute() *DozeRoute {
+	return &DozeRoute{actions: make(map[string]ActionFunc)}
 }
 
-func (rb *RouteBuilder) Name(name string) *RouteBuilder {
-	rb.routeName = name
+func (r *DozeRoute) Named(name string) *DozeRoute {
+	r.SetName(name)
 
-	return rb
+	return r
 }
 
-func (rb *RouteBuilder) For(path string) *RouteBuilder {
-	rb.path = path
+func (r *DozeRoute) For(path string) *DozeRoute {
+	r.SetPath(path)
 
-	return rb
+	return r
 }
 
-func (rb *RouteBuilder) With(method string, action ActionFunc) *RouteBuilder {
-	rb.actions[method] = action
+func (r *DozeRoute) With(method string, action ActionFunc) *DozeRoute {
+	actions := r.Actions()
+	actions[method] = action
+	r.SetActions(actions)
 
-	return rb
+	return r
 }
 
-func (rb *RouteBuilder) And(method string, action ActionFunc) *RouteBuilder {
-	return rb.With(method, action)
+func (r *DozeRoute) And(method string, action ActionFunc) *DozeRoute {
+	return r.With(method, action)
 }
 
-func (ro router) RouteMap(rbs ...*RouteBuilder) router {
-	for _, RouteBuilder := range rbs {
-		route := &Route{
-			Path:    ro.prefix + RouteBuilder.path,
-			Actions: RouteBuilder.actions,
-		}
+func (ro RestRouter) Add(route Route) {
+	route.SetPath(ro.Prefix() + route.Path())
 
-		ro.initRoute(route)
+	initRoute(ro, route)
 
-		if RouteBuilder.routeName == "" {
-			ro.Routes[RouteBuilder.path] = route
-		}
-		ro.Routes[RouteBuilder.routeName] = route
+	if route.Name() != "" {
+		ro.routes[route.Name()] = route
+	} else {
+		ro.routes[route.Path()] = route
 	}
-
-	return ro
 }
 
-func (ro router) initRoute(route *Route) {
-	toSub := regParam.FindAllStringSubmatch(route.Path, -1)
+func initRoute(router RestRouter, route Route) {
+	toSub := regParam.FindAllStringSubmatch(route.Path(), -1)
 
-	regString := route.Path
+	regString := route.Path()
 
 	if len(toSub) > 0 {
 		params := make([]string, len(toSub))
@@ -137,17 +118,18 @@ func (ro router) initRoute(route *Route) {
 			}
 			regString = strings.Replace(regString, whole, regex, -1)
 		}
-		ro.SetParamNames(route, params)
+
+		route.SetParamNames(params)
 	}
 
-	ro.routingMap[route] = regexp.MustCompile(regString + "/?")
+	router.routingMap[route] = regexp.MustCompile(regString + "/?")
 }
 
-func (ro router) Get(name string) *Route {
-	return ro.Routes[name]
+func (ro RestRouter) Get(name string) PatternedRoute {
+	return PatternedRoute{ro.routes[name]}
 }
 
-func (ro router) Match(test string) *Route {
+func (ro RestRouter) Match(test string) (PatternedRoute, bool) {
 	for route, regex := range ro.routingMap {
 		matches := regex.FindStringSubmatch(test)
 		if matches != nil && matches[0] == test {
@@ -156,23 +138,12 @@ func (ro router) Match(test string) *Route {
 			for i, m := range matches[1:] {
 				values[i] = m
 			}
-			ro.SetParamValues(route, values)
 
-			return route
+			route.SetParamValues(values)
+
+			return PatternedRoute{route}, true
 		}
 	}
 
-	return nil
-}
-
-func (ro router) SetParamNames(r *Route, pn []string) {
-	r.ParamNames = pn
-}
-
-func (ro router) SetParamValues(r *Route, pv []interface{}) {
-	r.ParamValues = pv
-}
-
-func (ro router) SetActions(r *Route, a map[string]ActionFunc) {
-	r.Actions = a
+	return PatternedRoute{}, false
 }

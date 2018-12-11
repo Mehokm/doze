@@ -41,17 +41,18 @@ const RestRoot = "/rest/api"
 var (
 	mux    *http.ServeMux
 	server *httptest.Server
-	r      router
+	r      RestRouter
 )
 
 func setup() {
 	mux = http.NewServeMux()
 	server = httptest.NewServer(mux)
-	r = DefaultRouter().RouteMap(
-		NewRoute().Name("simpleGet").For(RestRoot+"/simpleget").With(http.MethodGet, TestController{}.SimpleGet),
-		NewRoute().Name("simplePost").For(RestRoot+"/simplepost").With(http.MethodPost, TestController{}.SimplePost),
-		NewRoute().Name("simplePut").For(RestRoot+"/simpleput").With(http.MethodPut, TestController{}.SimplePut),
-	)
+	r = Router("test")
+
+	r.Add(NewRoute().Named("simpleGet").For(RestRoot+"/simpleget").With(http.MethodGet, TestController{}.SimpleGet))
+	r.Add(NewRoute().Named("simplePost").For(RestRoot+"/simplepost").With(http.MethodPost, TestController{}.SimplePost))
+	r.Add(NewRoute().Named("simplePut").For(RestRoot+"/simpleput").With(http.MethodPut, TestController{}.SimplePut))
+
 }
 
 func teardown() {

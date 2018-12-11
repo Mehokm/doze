@@ -39,7 +39,7 @@ func (uc UserController) RedirectToUser(c *doze.Context) doze.ResponseSender {
 
 	newParams := map[string]interface{}{"id": params["to"]}
 
-	newRoute, err := doze.DefaultRouter().Get("user").Build(newParams)
+	newRoute, err := doze.Router("api").Get("getUser").Build(newParams)
 
 	if err != nil {
 		fmt.Println(err)
@@ -78,12 +78,13 @@ func main() {
 
 	userController := UserController{stubDB{}}
 
-	router := doze.DefaultRouter().SetPrefix(root).RouteMap(
-		doze.NewRoute().Name("user").For("/users/{id:i}").
-			With(http.MethodGet, userController.GetUser),
-		doze.NewRoute().For("/users/{id:i}/{to:i}").
-			With(http.MethodGet, userController.RedirectToUser),
-		doze.NewRoute().For("/users").
+	router := doze.Router("api").SetPrefix(root)
+
+	router.Add(doze.NewRoute().Named("getUser").For("/users/{id:i}").With(http.MethodGet, userController.GetUser))
+	router.Add(doze.NewRoute().Named("redirectToUser").For("/users/{id:i}/{to:i}").With(http.MethodGet, userController.RedirectToUser))
+	router.Add(
+		doze.NewRoute().
+			For("/users").
 			With(http.MethodGet, userController.GetAllUsers).
 			And(http.MethodPost, userController.CreateUser),
 	)
