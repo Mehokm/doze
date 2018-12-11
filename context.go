@@ -11,7 +11,7 @@ import (
 type Context struct {
 	Request        *http.Request
 	ResponseWriter *ResponseWriter
-	Route          *Route
+	Route          PatternedRoute
 }
 
 // Set puts a value on the current context.Context by key

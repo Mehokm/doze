@@ -9,70 +9,64 @@ import (
 )
 
 func TestNameRouterMap(t *testing.T) {
-	v1 := DefaultRouter().RouteMap(
-		NewRoute().Name("TestRoute").For("/v1/people/{id:i}/details/{name:a}").With("GET", TestController{}.SimpleGet),
-	)
+	v1 := Router("TestNameRouterMap_v1")
+	v1.Add(NewRoute().Named("TestRoute").For("/v1/people/{id:i}/details/{name:a}").With("GET", TestController{}.SimpleGet))
 
-	v2 := Router("v2").RouteMap(
-		NewRoute().Name("TestRoute").For("/v2/people/{id:i}/details/{name:a}").With("GET", TestController{}.SimpleGet),
-	)
+	v2 := Router("TestNameRouterMap_v2")
+	v2.Add(NewRoute().Named("TestRoute").For("/v2/people/{id:i}/details/{name:a}").With("GET", TestController{}.SimpleGet))
 
 	assert.NotEqual(t, v1.Get("TestRoute"), v2.Get("TestRoute"), "should not be equal")
-	assert.Equal(t, "/v1/people/{id:i}/details/{name:a}", v1.Get("TestRoute").Path, "should be equal")
-	assert.Equal(t, "/v2/people/{id:i}/details/{name:a}", v2.Get("TestRoute").Path, "should be equal")
+	assert.Equal(t, "/v1/people/{id:i}/details/{name:a}", v1.Get("TestRoute").Path(), "should be equal")
+	assert.Equal(t, "/v2/people/{id:i}/details/{name:a}", v2.Get("TestRoute").Path(), "should be equal")
 }
 
 func TestRouterGetRouteWithName(t *testing.T) {
-	router := DefaultRouter().RouteMap(
-		NewRoute().Name("TestRoute").For("/people/{id:i}/details/{name:a}").With("GET", TestController{}.SimpleGet),
-	)
+	router := Router("TestRouterGetRouteWithName")
+	router.Add(NewRoute().Named("TestRoute").For("/people/{id:i}/details/{name:a}").With("GET", TestController{}.SimpleGet))
 
 	testRoute := router.Get("TestRoute")
 
-	assert.Equal(t, "/people/{id:i}/details/{name:a}", testRoute.Path, "Paths should match")
+	assert.Equal(t, "/people/{id:i}/details/{name:a}", testRoute.Path(), "Paths should match")
 }
 
 func TestRouterGetRouteWithoutName(t *testing.T) {
-	router := DefaultRouter().RouteMap(
-		NewRoute().For("/people/{id:i}/details/{name:a}").With("GET", TestController{}.SimpleGet),
-	)
+	router := Router("TestRouterGetRouteWithoutName")
+	router.Add(NewRoute().For("/people/{id:i}/details/{name:a}").With("GET", TestController{}.SimpleGet))
 
 	testRoute := router.Get("/people/{id:i}/details/{name:a}")
 
-	assert.Equal(t, "/people/{id:i}/details/{name:a}", testRoute.Path, "Paths should match")
+	assert.Equal(t, "/people/{id:i}/details/{name:a}", testRoute.Path(), "Paths should match")
 }
 
 func TestRouterRouteMatch(t *testing.T) {
-	router := DefaultRouter().RouteMap(
-		NewRoute().For("/people/{id:i}/details/{name:a}").With("GET", TestController{}.SimpleGet),
-		NewRoute().For("/people/{id}").With("GET", TestController{}.SimpleGet),
-	)
+	router := Router("TestRouterRouteMatch")
+	router.Add(NewRoute().For("/people/{id:i}/details/{name:a}").With("GET", TestController{}.SimpleGet))
+	router.Add(NewRoute().For("/people/{id}").With("GET", TestController{}.SimpleGet))
 
 	route1 := router.Match("/people/10/details/job")
 
-	assert.NotNil(t, route1, "route1 should not be nil")
+	assert.NotNil(t, route1.Route, "route1 should not be nil")
 
 	route2 := router.Match("/people/job/details/10")
 
-	assert.Nil(t, route2, "route2 should be nil")
+	assert.Nil(t, route2.Route, "route2 should be nil")
 
 	route3 := router.Match("/people/10")
 
-	assert.NotNil(t, route3, "route3 should not be nil")
+	assert.NotNil(t, route3.Route, "route3 should not be nil")
 
 	route4 := router.Match("/people/job")
 
-	assert.NotNil(t, route4, "route4 should not be nil")
+	assert.NotNil(t, route4.Route, "route4 should not be nil")
 
 	route5 := router.Match("/people/10/details/10")
 
-	assert.Nil(t, route5, "route5 should be nil")
+	assert.Nil(t, route5.Route, "route5 should be nil")
 }
 
 func TestRouteParams(t *testing.T) {
-	router := DefaultRouter().RouteMap(
-		NewRoute().For("/people/{id:i}/details/{name:a}").With("GET", TestController{}.SimpleGet),
-	)
+	router := Router("TestRouteParams")
+	router.Add(NewRoute().For("/people/{id:i}/details/{name:a}").With("GET", TestController{}.SimpleGet))
 
 	route := router.Match("/people/10/details/job")
 
@@ -82,9 +76,8 @@ func TestRouteParams(t *testing.T) {
 }
 
 func TestRouteBuildShouldError(t *testing.T) {
-	router := DefaultRouter().RouteMap(
-		NewRoute().Name("test").For("/people/{id:i}/details/{name}").With("GET", TestController{}.SimpleGet),
-	)
+	router := Router("TestRouteBuildShouldError")
+	router.Add(NewRoute().Named("test").For("/people/{id:i}/details/{name}").With("GET", TestController{}.SimpleGet))
 
 	m1 := map[string]interface{}{
 		"id":   65,
@@ -109,9 +102,8 @@ func TestRouteBuildShouldError(t *testing.T) {
 }
 
 func TestRouteBuild(t *testing.T) {
-	router := DefaultRouter().RouteMap(
-		NewRoute().Name("test").For("/people/{id:i}/details/{name}").With("GET", TestController{}.SimpleGet),
-	)
+	router := Router("TestRouteBuild")
+	router.Add(NewRoute().Named("test").For("/people/{id:i}/details/{name}").With("GET", TestController{}.SimpleGet))
 
 	m := map[string]interface{}{
 		"id":   65,
@@ -125,13 +117,12 @@ func TestRouteBuild(t *testing.T) {
 }
 
 func TestRouterPrefix(t *testing.T) {
-	router := DefaultRouter().SetPrefix("/api/v3").RouteMap(
-		NewRoute().Name("TestRoute").For("/people/{id:i}/details/{name:a}").With("GET", TestController{}.SimpleGet),
-	)
+	router := Router("TestRouterPrefix").SetPrefix("/api/v3")
+	router.Add(NewRoute().Named("TestRoute").For("/people/{id:i}/details/{name:a}").With("GET", TestController{}.SimpleGet))
 
 	testRoute := router.Get("TestRoute")
 
-	assert.Equal(t, "/api/v3/people/{id:i}/details/{name:a}", testRoute.Path, "Paths should match")
+	assert.Equal(t, "/api/v3/people/{id:i}/details/{name:a}", testRoute.Path(), "Paths should match")
 }
 
 /// BENCHMARKS
@@ -142,9 +133,8 @@ func BenchmarkRouterMatch2(b *testing.B) {
 	proute := "/{a}/{b}/{c}"
 	route := "/a/b/c"
 
-	rr := Router("benchmark").RouteMap(
-		NewRoute().Name("TestRoute3").For(proute).With("GET", TestController{}.SimpleGet),
-	)
+	rr := Router("benchmark")
+	rr.Add(NewRoute().Named("TestRoute3").For(proute).With("GET", TestController{}.SimpleGet))
 
 	h := NewHandler(rr)
 
