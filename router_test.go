@@ -43,32 +43,34 @@ func TestRouterRouteMatch(t *testing.T) {
 	router.Add(NewRoute().For("/people/{id:i}/details/{name:a}").With("GET", TestController{}.SimpleGet))
 	router.Add(NewRoute().For("/people/{id}").With("GET", TestController{}.SimpleGet))
 
-	route1 := router.Match("/people/10/details/job")
+	var matched bool
 
-	assert.NotNil(t, route1.Route, "route1 should not be nil")
+	_, matched = router.Match("/people/10/details/job")
 
-	route2 := router.Match("/people/job/details/10")
+	assert.True(t, matched, "route1 should be matched")
 
-	assert.Nil(t, route2.Route, "route2 should be nil")
+	_, matched = router.Match("/people/job/details/10")
 
-	route3 := router.Match("/people/10")
+	assert.False(t, matched, "route2 should not be matched")
 
-	assert.NotNil(t, route3.Route, "route3 should not be nil")
+	_, matched = router.Match("/people/10")
 
-	route4 := router.Match("/people/job")
+	assert.True(t, matched, "route3 should be matched")
 
-	assert.NotNil(t, route4.Route, "route4 should not be nil")
+	_, matched = router.Match("/people/job")
 
-	route5 := router.Match("/people/10/details/10")
+	assert.True(t, matched, "route4 should be matched")
 
-	assert.Nil(t, route5.Route, "route5 should be nil")
+	_, matched = router.Match("/people/10/details/10")
+
+	assert.False(t, matched, "route5 should not be matched")
 }
 
 func TestRouteParams(t *testing.T) {
 	router := Router("TestRouteParams")
 	router.Add(NewRoute().For("/people/{id:i}/details/{name:a}").With("GET", TestController{}.SimpleGet))
 
-	route := router.Match("/people/10/details/job")
+	route, _ := router.Match("/people/10/details/job")
 
 	assert.Len(t, route.Params(), 2, "length should be 2")
 	assert.Equal(t, 10, route.Params()["id"], "they should match")
@@ -134,7 +136,10 @@ func BenchmarkRouterMatch2(b *testing.B) {
 	route := "/a/b/c"
 
 	rr := Router("benchmark")
-	rr.Add(NewRoute().Named("TestRoute3").For(proute).With("GET", TestController{}.SimpleGet))
+
+	rr.Add(NewRoute().Named("TestRoute3").For(proute).With("GET", func(c *Context) ResponseSender {
+		return NewNoContentResponse()
+	}))
 
 	h := NewHandler(rr)
 

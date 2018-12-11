@@ -10,7 +10,7 @@ import (
 //   it returns nil
 type Routeable interface {
 	Get(string) PatternedRoute
-	Match(string) PatternedRoute
+	Match(string) (PatternedRoute, bool)
 }
 
 // ActionFunc is a type that is a function to be used as a controller action
@@ -33,8 +33,8 @@ func (h *Handler) Use(mf MiddlewareFunc) {
 }
 
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	route := h.router.Match(r.URL.Path)
-	if route.Route == nil {
+	route, matched := h.router.Match(r.URL.Path)
+	if !matched {
 		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
 		return
 	}

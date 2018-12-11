@@ -78,10 +78,11 @@ type PatternedRoute struct {
 func (r PatternedRoute) Params() map[string]interface{} {
 	pv := make(map[string]interface{})
 
+	paramNames := r.ParamNames()
 	for i, v := range r.ParamValues() {
-		pv[r.ParamNames()[i]] = v
+		pv[paramNames[i]] = v
 		if n, err := strconv.Atoi(v.(string)); err == nil {
-			pv[r.ParamNames()[i]] = n
+			pv[paramNames[i]] = n
 		}
 	}
 	return pv

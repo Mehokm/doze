@@ -91,10 +91,10 @@ func (ro RestRouter) Add(route Route) {
 
 	initRoute(ro, route)
 
-	if route.Name() == "" {
-		ro.routes[route.Path()] = route
-	} else {
+	if route.Name() != "" {
 		ro.routes[route.Name()] = route
+	} else {
+		ro.routes[route.Path()] = route
 	}
 }
 
@@ -129,7 +129,7 @@ func (ro RestRouter) Get(name string) PatternedRoute {
 	return PatternedRoute{ro.routes[name]}
 }
 
-func (ro RestRouter) Match(test string) PatternedRoute {
+func (ro RestRouter) Match(test string) (PatternedRoute, bool) {
 	for route, regex := range ro.routingMap {
 		matches := regex.FindStringSubmatch(test)
 		if matches != nil && matches[0] == test {
@@ -141,9 +141,9 @@ func (ro RestRouter) Match(test string) PatternedRoute {
 
 			route.SetParamValues(values)
 
-			return PatternedRoute{route}
+			return PatternedRoute{route}, true
 		}
 	}
 
-	return PatternedRoute{}
+	return PatternedRoute{}, false
 }
