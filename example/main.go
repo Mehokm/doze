@@ -88,6 +88,7 @@ func main() {
 			With(http.MethodGet, userController.GetAllUsers).
 			And(http.MethodPost, userController.CreateUser),
 	)
+	router.Add(doze.NewRoute().Named("protectedUser").For("/users/{id:i}/protected").With(http.MethodGet, userController.GetUser))
 
 	h := doze.NewHandler(router)
 
@@ -118,7 +119,28 @@ func main() {
 		fmt.Println(logStr)
 	})
 
+	h.Use(func(c *doze.Context, next doze.NextFunc) {
+		currentRoute := c.Route.Name()
+
+		if currentRoute == "protectedUser" {
+			token := c.Request.Header.Get("X-MyAuth")
+
+			if token != "letmein123" {
+				userForbidden(c)
+
+				return
+			}
+		}
+
+		next(c)
+	})
+
 	http.Handle(router.Prefix()+"/", h)
 
 	log.Fatal(http.ListenAndServe(":8080", nil))
+}
+
+func userForbidden(c *doze.Context) {
+	c.ResponseWriter.WriteHeader(http.StatusForbidden)
+	c.ResponseWriter.Write([]byte(http.StatusText(http.StatusForbidden)))
 }
