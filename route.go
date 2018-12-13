@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"regexp"
 	"strconv"
+	"strings"
 )
 
 type DozeRoute struct {
@@ -96,21 +97,46 @@ func (r PatternedRoute) Build(m map[string]interface{}) (string, error) {
 	}
 
 	s := r.Path()
-	for p, v := range m {
-		reg := regexp.MustCompile(fmt.Sprintf(`{%v(:\w+)?}`, p))
 
-		if !reg.MatchString(s) {
-			return "", fmt.Errorf("parameter not valid: %v", p)
-		}
+	var i int
+	regstrs := make([]string, len(m))
 
-		switch v.(type) {
-		case int:
-			i := strconv.Itoa(v.(int))
-			s = reg.ReplaceAllString(s, i)
-		default:
-			s = reg.ReplaceAllString(s, v.(string))
-		}
+	for p := range m {
+		regstrs[i] = fmt.Sprintf(`{(%v)(?::\w+)?}`, p)
 
+		i++
 	}
-	return s, nil
+
+	reg := regexp.MustCompile(strings.Join(regstrs, "|"))
+
+	result := reg.ReplaceAllStringFunc(s, func(str string) string {
+		i := strings.Index(str, ":")
+
+		var param string
+		if i >= 0 { // will cause issue if param is formatted correctly, but that shouldn't happen
+			param = str[1:i]
+		} else {
+			param = str[1 : len(str)-1]
+		}
+
+		value, ok := m[param]
+
+		if !ok {
+			return ""
+		}
+
+		switch value.(type) {
+		case int:
+			return strconv.Itoa(value.(int))
+		case float32:
+		case float64:
+			return strconv.FormatFloat(value.(float64), 'f', -1, 64)
+		case string:
+			return value.(string)
+		}
+
+		return ""
+	})
+
+	return result, nil
 }
