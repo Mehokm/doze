@@ -97,10 +97,9 @@ func TestRouteBuildShouldError(t *testing.T) {
 		"not": "valid",
 	}
 
-	s2, err2 := router.Get("test").Build(m2)
+	s2, _ := router.Get("test").Build(m2)
 
-	assert.EqualError(t, err2, "parameter not valid: not", "they should match")
-	assert.Equal(t, "", s2, "they should match")
+	assert.Equal(t, "/people/65/details/{name}", s2, "they should match")
 }
 
 func TestRouteBuild(t *testing.T) {
@@ -138,7 +137,14 @@ func BenchmarkRouterMatch2(b *testing.B) {
 	rr := Router("benchmark")
 
 	rr.Add(NewRoute().Named("TestRoute3").For(proute).With("GET", func(c *Context) ResponseSender {
-		return NewNoContentResponse()
+		params := make(map[string]interface{})
+		params["a"] = 1
+		params["b"] = 2
+		params["c"] = 3
+
+		Router("benchmark").Get("TestRoute3").Build(params)
+
+		return nil
 	}))
 
 	h := NewHandler(rr)
