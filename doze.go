@@ -18,18 +18,18 @@ type ActionFunc func(*Context) ResponseSender
 
 // Handler implements http.Handler and contains the router and controllers for the REST api
 type Handler struct {
-	router          Routeable
-	middlewareChain *middlewareChain
+	router     Routeable
+	middleware []MiddlewareFunc
 }
 
 // NewHandler returns a new Handler with router initialized
 func NewHandler(r Routeable) *Handler {
-	return &Handler{router: r, middlewareChain: new(middlewareChain)}
+	return &Handler{router: r}
 }
 
 // Use applies a MiddlewareFunc to be executed in the request chain
 func (h *Handler) Use(mf MiddlewareFunc) {
-	h.middlewareChain.add(mf)
+	h.middleware = append(h.middleware, mf)
 }
 
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -51,8 +51,11 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		Route:          route,
 	}
 
-	h.middlewareChain.action = action
+	mwc := &middlewareChain{action: action}
+	for _, mw := range h.middleware {
+		mwc.add(mw)
+	}
 
-	h.middlewareChain.run(context)
+	mwc.run(context)
 	return
 }
