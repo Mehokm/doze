@@ -131,25 +131,36 @@ func TestRouterPrefix(t *testing.T) {
 func BenchmarkRouterMatch2(b *testing.B) {
 	b.StopTimer()
 
-	proute := "/{a}/{b}/{c}"
-	route := "/a/b/c"
+	routes := []string{
+		"/foo",
+		"/foo/bar",
+		"/foo/bar/{a}",
+		"/foo/bar/{a}/baz",
+		"/oof",
+		"/oof/rab",
+		"/oof/rab/{a}",
+		"/oof/rab/{a}/baz",
+		"/foo/bar/{a}/baz/{b}/oof",
+		"/foo/bar/{a}/baz/{b}/oof/{c}/rab",
+		"/foo/bar/{a}/baz/{b}/oof/{c}/rab/{d}",
+		"/foo/bar/{a}/baz/{b}/oof/{c}/rab/{d}/zab",
+		"/foo/bar/{a}/baz/{b}/oof/{c}/rab/{d}/zab/{e}",
+	}
+
+	test := "/foo/bar/1/baz/2/oof/3/rab/4/zab/5"
 
 	rr := Router("benchmark")
 
-	rr.Add(NewRoute().Named("TestRoute3").For(proute).With("GET", func(c *Context) ResponseSender {
-		params := make(map[string]interface{})
-		params["a"] = 1
-		params["b"] = 2
-		params["c"] = 3
-
-		Router("benchmark").Get("TestRoute3").Build(params)
-
-		return nil
-	}))
+	for _, r := range routes {
+		rr.Add(NewRoute().For(r).With("GET", func(c *Context) ResponseSender {
+			// fmt.Println("matched")
+			return nil
+		}))
+	}
 
 	h := NewHandler(rr)
 
-	req, _ := http.NewRequest("GET", route, nil)
+	req, _ := http.NewRequest("GET", test, nil)
 	resp := httptest.NewRecorder()
 
 	b.StartTimer()
