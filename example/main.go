@@ -1,12 +1,11 @@
 package main
 
 import (
+	"doze"
 	"fmt"
 	"log"
 	"net/http"
 	"time"
-
-	"github.com/Mehokm/doze"
 )
 
 // User struct holds basic data about a user
