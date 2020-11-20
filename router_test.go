@@ -144,16 +144,20 @@ func BenchmarkRouterMatch2(b *testing.B) {
 		"/foo/bar/{a}/baz/{b}/oof/{c}/rab",
 		"/foo/bar/{a}/baz/{b}/oof/{c}/rab/{d}",
 		"/foo/bar/{a}/baz/{b}/oof/{c}/rab/{d}/zab",
-		"/foo/bar/{a}/baz/{b}/oof/{c}/rab/{d}/zab/{e}",
+		"/foo/bar/{a}/baz/{b}/oof/{c}/rab/{d}/zab/{e:a}",
 	}
 
-	test := "/foo/bar/1/baz/2/oof/3/rab/4/zab/5"
+	test := "/foo/bar/1/baz/2/oof/A/rab/B/zab/C"
 
 	rr := Router("benchmark")
 
+	// var printed bool
 	for _, r := range routes {
 		rr.Add(NewRoute().For(r).With("GET", func(c *Context) ResponseSender {
-			// fmt.Println("matched")
+			// if !printed {
+			// 	fmt.Println("match")
+			// 	printed = true
+			// }
 			return nil
 		}))
 	}

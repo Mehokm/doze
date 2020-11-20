@@ -138,6 +138,10 @@ func TestRouterMatchV2(t *testing.T) {
 			test:        "/foo/bar/1/baz/2/oof/3/rab/4/zab/E",
 			shouldMatch: true,
 		},
+		{
+			test:        "/foo/bar/1/baz/2/oof/A/rab/B/zab/C/d",
+			shouldMatch: false,
+		},
 	}
 
 	for _, tt := range testcases {
@@ -159,6 +163,7 @@ func BenchmarkRouterMatch3(b *testing.B) {
 	// alpha '>'
 
 	routes := []string{
+		"/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*",
 		"/foo",
 		"/foo/bar",
 		"/foo/bar/*",
@@ -177,12 +182,17 @@ func BenchmarkRouterMatch3(b *testing.B) {
 		"/foo/bar/*/baz/*/oof/*/rab/*/zab/>",
 	}
 
-	test := "/foo/bar/1/baz/2/oof/4/rab/4/zab/s"
+	test := "/a/b/c/d/e/a/b/c/d/e/a/b/c/d/e/a/b/c/d/e"
 
 	r2 := NewRouterV2()
 
+	// var printed bool
 	for _, r := range routes {
 		r2.GET(r, func(c *Context) ResponseSender {
+			// if !printed {
+			// 	fmt.Println("match")
+			// 	printed = true
+			// }
 			return nil
 		})
 	}

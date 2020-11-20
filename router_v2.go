@@ -6,6 +6,13 @@ import (
 	"unicode"
 )
 
+const MaxSize = 87
+const END = '$'
+const INT = '<' - END
+const ALPHA = '>' - END
+const WILDCARD = '*' - END
+const SLASH = '/' - END
+
 type routerV2 struct {
 	routes map[string]Route
 	root   *NodeV2
@@ -32,34 +39,46 @@ func (r routerV2) GET(path string, fn ActionFunc) {
 }
 
 type NodeV2 struct {
-	Children map[rune]*NodeV2
-	IsLeaf   bool
-	Value    Route
+	Children    [MaxSize]*NodeV2
+	HasChildren bool
+	IsLeaf      bool
+	Value       Route
 }
 
 func NewNodeV2() *NodeV2 {
 	return &NodeV2{
-		Children: make(map[rune]*NodeV2),
-		IsLeaf:   false,
+		IsLeaf: false,
 	}
+}
+
+func isEmpty(arr [MaxSize]*NodeV2) bool {
+	for _, n := range arr {
+		if n != nil {
+			return false
+		}
+	}
+
+	return true
 }
 
 func insert(node *NodeV2, s string, value Route) {
 	for _, ch := range s {
+		ch = ch - END
+
 		if node.Children[ch] == nil {
 			node.Children[ch] = NewNodeV2()
 		}
 		node = node.Children[ch]
 	}
 
+	node.HasChildren = !isEmpty(node.Children)
 	node.IsLeaf = true
 	node.Value = value
 }
 
-func search(node *NodeV2, key string) *NodeV2 {
-	if key != "" {
-
-		key = key + "$"
+func search(node *NodeV2, key []byte) *NodeV2 {
+	if key != nil {
+		key = append([]byte(key), '$')
 	}
 
 	var consuming bool
@@ -67,67 +86,79 @@ func search(node *NodeV2, key string) *NodeV2 {
 	var isAlpha bool = true
 
 	for i, ch := range key {
-		if consuming && (ch == '/' || ch == '$') {
+		c := ch - END
+
+		if consuming && (c == SLASH || ch == END) {
+			var valid bool = true
+
 			consuming = false
 
 			tmp := node
 
 			skey := key[i:]
-			if skey[len(skey)-1] == '$' {
+			if skey[len(skey)-1] == END {
 				skey = skey[:len(skey)-1]
 			}
 
 			// test for int
-			if isInt && node.Children['<'] != nil {
-				node = node.Children['<']
+			if isInt && node.Children[INT] != nil {
+				node = node.Children[INT]
 
-				n := search(node, skey)
+				found := search(node, skey)
 
-				if n != nil {
-					return n
+				if found != nil {
+					return found
 				}
+
+				valid = false
 
 				node = tmp
 			}
 
-			if isAlpha && node.Children['>'] != nil {
-				node = node.Children['>']
+			if isAlpha && node.Children[ALPHA] != nil {
+				node = node.Children[ALPHA]
 
-				n := search(node, skey)
+				found := search(node, skey)
 
-				if n != nil {
-					return n
+				if found != nil {
+					return found
 				}
+
+				valid = false
 
 				node = tmp
 			}
 
 			// test for wildcard
-			if node.Children['*'] != nil {
-				node = node.Children['*']
+			if node.Children[WILDCARD] != nil {
+				node = node.Children[WILDCARD]
 
-				n := search(node, skey)
+				found := search(node, skey)
 
-				if n != nil {
-					return n
+				if found != nil {
+					return found
 				}
 
+				valid = false
+			}
+
+			if !valid {
 				return nil
 			}
-		} else if node.Children[ch] != nil {
-			node = node.Children[ch]
+		} else if node.Children[c] != nil {
+			node = node.Children[c]
 		} else {
-			if ch != '$' && len(node.Children) == 0 && node.IsLeaf {
+			if ch != END && !node.HasChildren && node.IsLeaf {
 				return nil
 			}
 
 			consuming = true
 
-			if !unicode.IsDigit(ch) {
+			if !unicode.IsDigit(rune(ch)) {
 				isInt = false
 			}
 
-			if !unicode.IsLetter(ch) {
+			if !unicode.IsLetter(rune(ch)) {
 				isAlpha = false
 			}
 		}
@@ -145,7 +176,7 @@ func (r routerV2) Get(name string) PatternedRoute {
 }
 
 func (r routerV2) Match(test string) (PatternedRoute, bool) {
-	node := search(r.root, test)
+	node := search(r.root, []byte(test))
 
 	if node != nil {
 		return PatternedRoute{node.Value}, true
