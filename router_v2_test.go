@@ -1,6 +1,7 @@
 package doze
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -153,6 +154,37 @@ func TestRouterMatchV2(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestParam(t *testing.T) {
+	s := "/foo/bar/{asdf}/baz/{qwerty:i}"
+
+	params := parseRouteParams(s)
+
+	fmt.Println(params)
+}
+
+func TestNewSearch(t *testing.T) {
+	r2 := NewRouterV2()
+
+	s := "/foo/bar/baz/*/s/*/d"
+
+	r2.GET(s, func(c *Context) ResponseSender {
+		return nil
+	})
+
+	key := Key{
+		Val: "/foo/bar/baz/12/s/2/d",
+	}
+
+	a := search2(r2.root, r2.wildcards, key)
+
+	if a == nil {
+		fmt.Println("got nil, want not nil")
+		return
+	}
+
+	fmt.Println(a.Value)
 }
 
 func BenchmarkRouterMatch3(b *testing.B) {
