@@ -24,7 +24,9 @@ func NewRouterV2() routerV2 {
 	return routerV2{
 		routes:    make(map[string]Route),
 		root:      NewNodeV2(),
-		wildcards: make(map[int]bool),	// THIS NEEDS TO BE A MAP OF WILDCARD MAPS INDEXED BY THE PATH SINCE THE ROUTER HAS MULTIPLE ROUTES WHICH COULD MESS UP THE LOGIC
+		wildcards: make(map[int]bool),	// THIS NEEDS TO BE A MAP OF WILDCARD MAPS INDEXED BY THE PATH,
+						// OR, IT NEEDS TO BE A PROPERTY ON THE ROUTE OBJECT
+						// SINCE THE ROUTER HAS MULTIPLE ROUTES WHICH COULD MESS UP THE LOGIC
 	}
 }
 
