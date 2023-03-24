@@ -24,7 +24,7 @@ func NewRouterV2() routerV2 {
 	return routerV2{
 		routes:    make(map[string]Route),
 		root:      NewNodeV2(),
-		wildcards: make(map[int]bool),
+		wildcards: make(map[int]bool),	// THIS SHOULD PROBABLY BE ON THE NODE AND NOT THE ROUTER SINCE THE ROUTER HAS MULTIPLE ROUTES WHICH COULD MESS UP THE LOGIC
 	}
 }
 
@@ -135,7 +135,7 @@ func insert(node *NodeV2, wildcards map[int]bool, s string, value Route) {
 			node.Children[ch] = NewNodeV2()
 
 			if ch == WILDCARD {
-				wildcards[i] = true
+				wildcards[i] = true	// WE SHOULD MOVE THIS TO BE NODE SPECIFIC, AND WHEN WE DO WE SHOULD STORE THE PARAMS AS THE VALUE OF THE WILDCARD SO WE HAVE IT
 			}
 		}
 		node = node.Children[ch]
