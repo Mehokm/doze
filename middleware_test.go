@@ -21,9 +21,9 @@ func TestMiddlewareChain(t *testing.T) {
 	}
 
 	// when
-	mwc.add(middlewareFuncOne)
-	mwc.add(middlewareFuncTwo)
-	mwc.add(middlewareFuncThree)
+	mwc.use(middlewareFuncOne)
+	mwc.use(middlewareFuncTwo)
+	mwc.use(middlewareFuncThree)
 
 	mwc.run(ctx)
 

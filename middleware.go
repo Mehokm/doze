@@ -1,72 +1,51 @@
 package doze
 
-// MiddlewareFunc is a function type for adding middleware to the request
-type MiddlewareFunc func(*Context, NextFunc)
+// MiddlewareFunc defines a function to process middleware in the request chain.
+type MiddlewareFunc func(ctx *Context, next NextFunc)
 
-// NextFunc is a function type that progresses the middleware chain for the request
-type NextFunc func(*Context)
+// NextFunc defines a function to proceed to the next middleware in the chain.
+type NextFunc func(ctx *Context)
 
-type middleware struct {
-	fn   MiddlewareFunc
-	next *middleware
-}
+// ActionFunc defines the final action function to handle the request.
+type ActionFunc func(ctx *Context) ResponseSender
 
+// middlewareChain manages a chain of middlewares and the final action.
 type middlewareChain struct {
-	root   *middleware
-	action ActionFunc
+	middlewares []MiddlewareFunc
+	action      ActionFunc
 }
 
-func (mc *middlewareChain) add(mf MiddlewareFunc) {
-	if mc.root == nil {
-		mc.root = &middleware{
-			fn: mf,
-		}
-	} else {
-		tmp := mc.root
-		for tmp.next != nil {
-			tmp = tmp.next
-		}
-
-		tmp.next = &middleware{
-			fn: mf,
-		}
-	}
+// use adds a MiddlewareFunc to the middleware chain.
+func (mc *middlewareChain) use(middleware MiddlewareFunc) {
+	mc.middlewares = append(mc.middlewares, middleware)
 }
 
+// run executes the middleware chain and the final action.
 func (mc *middlewareChain) run(ctx *Context) {
-	// build the actual function chain
-	mcCopy := *mc
+	// Start with the final action as the initial next function.
+	next := func(ctx *Context) {
+		executeAction(ctx, mc.action)
+	}
 
-	fn := buildChain(ctx, mcCopy.root, mcCopy.action)
-
-	// start the chain
-	fn(ctx)
-}
-
-func buildChain(ctx *Context, m *middleware, action ActionFunc) NextFunc {
-	return func(ctx *Context) {
-		// no middleware, so no need to wrap in MiddlewareFunc
-		if m == nil {
-			doAction(ctx, action)
-		} else if m.next == nil {
-			// no more middleware, so call the actual action
-			m.fn(ctx, func(ctx *Context) {
-				doAction(ctx, action)
-			})
-		} else {
-			// keep building the chain recursively...
-			m.fn(ctx, buildChain(ctx, m.next, action))
+	// Build the middleware chain in reverse order.
+	for i := len(mc.middlewares) - 1; i >= 0; i-- {
+		m := mc.middlewares[i]
+		currentMiddleware := m
+		currentNext := next
+		next = func(ctx *Context) {
+			currentMiddleware(ctx, currentNext)
 		}
 	}
+
+	// Execute the middleware chain.
+	next(ctx)
 }
 
-func doAction(ctx *Context, action ActionFunc) {
+// executeAction calls the final action function and sends the response.
+func executeAction(ctx *Context, action ActionFunc) {
 	result := action(ctx)
-
 	if result != nil {
-		_, err := result.Send(ctx.ResponseWriter)
-
-		if err != nil {
+		if _, err := result.Send(ctx.ResponseWriter); err != nil {
 			panic(err)
 		}
 	}

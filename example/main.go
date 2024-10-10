@@ -57,7 +57,7 @@ func (uc UserController) GetUser(c *doze.Context) doze.ResponseSender {
 
 // GetAllUsers action maps to route /users (GET)
 func (uc UserController) GetAllUsers(c *doze.Context) doze.ResponseSender {
-	return doze.NewOKJSONResponse(users)
+	return doze.NewGzipResponse(doze.NewOKJSONResponse(users))
 }
 
 // CreateUser action maps to route /users (POST)

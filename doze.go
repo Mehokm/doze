@@ -5,16 +5,13 @@ import (
 )
 
 // Routeable is an interface which allows you to create your own router
-// * Get(string) *Route returns the route by route name
-// * Match(string) *Route takes a URI and returns a *Route it matches.  If it does not
-//   it returns nil
+//   - Get(string) *Route returns the route by route name
+//   - Match(string) *Route takes a URI and returns a *Route it matches.  If it does not
+//     it returns nil
 type Routeable interface {
 	Get(string) PatternedRoute
 	Match(string) (PatternedRoute, bool)
 }
-
-// ActionFunc is a type that is a function to be used as a controller action
-type ActionFunc func(*Context) ResponseSender
 
 // Handler implements http.Handler and contains the router and controllers for the REST api
 type Handler struct {
@@ -53,9 +50,8 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	mwc := &middlewareChain{action: action}
 	for _, mw := range h.middleware {
-		mwc.add(mw)
+		mwc.use(mw)
 	}
 
 	mwc.run(context)
-	return
 }
